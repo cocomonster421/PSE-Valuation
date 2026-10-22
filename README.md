@@ -87,6 +87,13 @@ to see method-specific missing data, assumption evidence and reporting issues; u
 scan does not fetch data or change your files, and a calculated value is not a
 verified investment target.
 
+Local report scans also show possible disclosure issues with source excerpts. You
+can save selected passages for reporting review even when no financial figures are
+found. Screening covers only readable selected text/pages, shows at most 20 matches
+per file, and cannot determine whether a passage is negated, historical or resolved.
+No matches does not mean a clean report. Online price/summary refresh does not run
+this disclosure screen.
+
 ## Getting started
 
 Requires **Python 3.11 or newer**. Download and extract the repository, keeping its

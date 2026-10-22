@@ -4,6 +4,7 @@ import re
 from datetime import datetime, timezone
 from urllib.parse import urlsplit, parse_qs
 from urllib.request import Request, urlopen
+from backend.disclosures import screen_passages
 
 
 def number(text):
@@ -80,15 +81,17 @@ PDF_LABELS = {
 }
 
 
-def document_candidates(path, period="", scale=1, page_selection=""):
+def document_candidates(path, period="", scale=1, page_selection="", findings=None):
     if path.stat().st_size>30_000_000:
         raise ValueError("Report exceeds 30 MB; use a smaller extract or saved financial-summary page.")
     digest=hashlib.sha256(path.read_bytes()).hexdigest()
     pages=None
     if path.suffix.lower() in {".html",".htm"}:
         html=path.read_text(encoding="utf-8",errors="replace")
+        text=soup_for(html).get_text("\n",strip=True)
         try:
             candidates=edge_financials(html,path.name)
+            if findings is not None: findings.extend(screen_passages({'HTML':text}))
             for candidate in candidates:
                 candidate.update(source_file=path.name,source_hash=digest,unit="PHP/share",source_row=candidate["note"],source_page="HTML summary",scale=1)
             return candidates,digest,[]
@@ -116,7 +119,11 @@ def document_candidates(path, period="", scale=1, page_selection=""):
             raise ValueError("This appears to be a scanned/image PDF. Save a text-based report or enter reviewed figures; OCR is not enabled.")
     else:
         text=path.read_text(encoding="utf-8",errors="replace")
+    if findings is not None:
+        findings.extend(screen_passages(pages or {1:text}))
     if not period:
+        if findings is not None:
+            return [],digest,["Financial figures were not extracted: select a financial period end. Disclosure screening covers only the selected text/pages and is not an audit."]
         raise ValueError("Select the financial period end for this report before scanning PDF/text files.")
     datetime.fromisoformat(period)
     declared_scales=set()

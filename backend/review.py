@@ -50,6 +50,9 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
         data_issues.append("Reporting note: " + reports["review_note"])
     if report_status in {"unreviewed", "unresolved"} and reports.get("invalidation_reason"):
         data_issues.append("Reporting: " + reports["invalidation_reason"])
+    if report_status == 'unresolved':
+        for finding in reports.get('disclosure_findings',{}).values():
+            data_issues.append(f"{finding['category']} — {finding['source_file']}, page {finding['source_page']}: {finding['excerpt']} (keyword match; review context)")
     for key in policy["methods"][method]["fields"]+["price"]:
         value=inputs.get(key)
         if value is None:

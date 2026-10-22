@@ -94,6 +94,35 @@ class LocalAPITests(unittest.TestCase):
         self.assertFalse(outcome['reporting_review_required'])
         self.assertEqual(self.request(f'/api/stocks/{ticker}')[1]['data']['reports'],reports)
 
+    def test_disclosure_only_requires_selection_and_preserves_financials(self):
+        ticker='DISCLOSURE'
+        fields={'eps':{'value':5,'as_of':'2026-06-30','note':'Fixture'}}
+        server.write(server.ROOT / f'stock_data/{ticker}.json',dict(ticker=ticker,name='Disclosure fixture',industry='Test',currency='PHP',fields=fields,reports={'review_status':'reviewed','review_note':'Earlier review'}))
+        folder=server.ROOT / f'reports/{ticker}'
+        folder.mkdir(parents=True)
+        source=folder/'notice.txt'
+        source.write_text('The audit opinion has been withdrawn. Financial reporting review is pending.',encoding='utf-8')
+        code,preview=self.request(f'/api/update/{ticker}',dict(mode='offline',file='notice.txt'))
+        self.assertEqual(code,200)
+        self.assertEqual(preview['candidates'],[])
+        self.assertEqual(len(preview['findings']),1)
+        self.assertEqual(self.request(f'/api/stocks/{ticker}')[1]['data']['reports']['review_status'],'reviewed')
+        payload=dict(token=preview['token'],selected=[],selected_findings=[preview['findings'][0]['id']])
+        self.assertEqual(self.request('/api/update-apply',payload)[0],400)
+        payload['confirmed']=True
+        self.assertEqual(self.request('/api/update-apply',{**payload,'selected_findings':['unknown']})[0],400)
+        code,outcome=self.request('/api/update-apply',payload)
+        self.assertEqual(code,200)
+        self.assertEqual(outcome['flagged'],1)
+        current=self.request(f'/api/stocks/{ticker}')[1]['data']
+        self.assertEqual(current['fields'],fields)
+        self.assertEqual(current['reports']['review_status'],'unresolved')
+        self.assertEqual(current['reports']['review_note'],'Earlier review')
+        checked=self.request('/api/review',dict(ticker=ticker,method='pe',inputs={'eps':5,'multiple':10}))[1]
+        self.assertTrue(any('opinion has been withdrawn' in issue for issue in checked['issues']))
+        code,again=self.request(f'/api/update/{ticker}',dict(mode='offline',file='notice.txt'))
+        self.assertEqual(again['findings'],[])
+
     def test_cross_origin_write_rejected(self):
         self.assertEqual(self.request("/api/scenarios", {}, origin=False)[0], 403)
 

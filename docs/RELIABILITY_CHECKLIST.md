@@ -26,6 +26,10 @@
   broken files, links to open inputs and a JSON export containing inputs, review
   evidence, calculation status, timestamps and source/policy revision identifiers.
   The scan uses recommended methods, or all methods if no recommendation exists.
+- [x] Screen downloaded report text for possible restatement, audit-opinion,
+  control-weakness and going-concern passages. Show excerpts and page references;
+  save only selected passages as unresolved review items, preserving file hashes.
+  Keyword matches are not accounting conclusions; negation and context need review.
 
 ## Remaining
 
@@ -33,8 +37,6 @@
   used in trailing-year calculations; period labels alone do not prove comparability.
 - [ ] Structured FCFF/FCFE reconciliation, including lease, financing and ownership
   consistency; helper calculations currently still need human review.
-- [ ] Scan downloaded disclosures for possible restatement/audit issues and present
-  source passages for review. No claim of automatic audit interpretation.
 - [ ] Independently reconcile worked examples across company types against filings
   and a separate calculation before relying on their valuation conclusions.
 

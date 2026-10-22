@@ -186,7 +186,7 @@ class Handler(BaseHTTPRequestHandler):
                 ticker=safe_id(path.rsplit("/",1)[1])
                 company=read(stock_path(ROOT,ticker))
                 mode=payload.get("mode")
-                candidates=[];warnings=[];hashes={}
+                candidates=[];warnings=[];hashes={};findings=[]
                 folder=ROOT/"reports"/ticker
                 folder.mkdir(parents=True,exist_ok=True)
                 ledger_path=ROOT/"runtime/import-ledgers"/f"{ticker}.json"
@@ -215,24 +215,33 @@ class Handler(BaseHTTPRequestHandler):
                             warnings.append(f"{file.name}: exceeds 30 MB; use a smaller extract")
                             continue
                         digest=hashlib.sha256(file.read_bytes()).hexdigest()
-                        import_key=hashlib.sha256(json.dumps([digest,payload.get("pages",""),payload.get("period",""),scale]).encode()).hexdigest()
+                        import_key=hashlib.sha256(json.dumps(["disclosure-screen-v1",digest,payload.get("pages",""),payload.get("period",""),scale]).encode()).hexdigest()
                         if import_key in ledger:
                             continue
                         try:
-                            rows,digest,notes=document_candidates(file,payload.get("period",""),scale,payload.get("pages",""))
+                            file_findings=[]
+                            rows,digest,notes=document_candidates(file,payload.get("period",""),scale,payload.get("pages",""),findings=file_findings)
                             hashes[file.name]=digest
                             for row in rows:
                                 row["source_file"]=file.name;row["source_hash"]=digest;row["import_key"]=import_key
                             candidates.extend(rows);warnings.extend(notes)
                         except Exception as error:
                             warnings.append(f"{file.name}: {error}")
+                        # A units/date error in numeric extraction must not hide a
+                        # passage already found in successfully extracted text.
+                        if file_findings:
+                            hashes[file.name]=digest
+                            for finding in file_findings:
+                                finding.update(source_file=file.name,source_hash=digest,import_key=import_key)
+                                finding['id']=hashlib.sha256(json.dumps(finding,sort_keys=True).encode()).hexdigest()
+                            findings.extend(file_findings)
                 else:
                     raise ValueError("Choose offline scan or online refresh")
                 token=uuid.uuid4().hex
                 for index,candidate in enumerate(candidates):
                     candidate["id"]=str(index)
                     candidate["previous"]=company["fields"].get(candidate["key"],{}).get("value")
-                preview={"token":token,"ticker":ticker,"revision":revision(company),"mode":mode,"folder":str(folder),"candidates":candidates,"warnings":warnings,"hashes":hashes}
+                preview={"token":token,"ticker":ticker,"revision":revision(company),"mode":mode,"folder":str(folder),"candidates":candidates,"findings":findings,"warnings":warnings,"hashes":hashes}
                 write(ROOT/"runtime/import-previews"/f"{token}.json",preview)
                 return self.send(200,preview)
             if path=="/api/update-apply":
@@ -242,13 +251,17 @@ class Handler(BaseHTTPRequestHandler):
                 preview_path=ROOT/"runtime/import-previews"/f"{token}.json"
                 preview=read(preview_path);ticker=safe_id(preview["ticker"])
                 selected=payload.get("selected",[])
-                if not isinstance(selected,list) or not selected or any(not isinstance(i,str) for i in selected):
+                selected_findings=payload.get("selected_findings",[])
+                if any(not isinstance(items,list) or any(not isinstance(i,str) for i in items) for items in (selected,selected_findings)):
                     raise ValueError("Select the figures to update")
                 chosen=[c for c in preview["candidates"] if c["id"] in selected]
+                flagged=[f for f in preview.get("findings",[]) if f["id"] in selected_findings]
+                if set(selected)-{c['id'] for c in chosen} or set(selected_findings)-{f['id'] for f in flagged}:
+                    raise ValueError("Selection does not match this preview. Scan again.")
                 if len({c["key"] for c in chosen})!=len(chosen):
                     raise ValueError("Select only one proposed value per field; compare duplicate reports first")
-                if not chosen:
-                    raise ValueError("No selected figures were found")
+                if not chosen and not flagged:
+                    raise ValueError("Select figures or disclosure passages to save")
                 with LOCK:
                     destination=stock_path(ROOT,ticker);company=read(destination)
                     if revision(company)!=preview["revision"]:
@@ -273,20 +286,28 @@ class Handler(BaseHTTPRequestHandler):
                         reports["invalidated_on"]=datetime.now(timezone.utc).isoformat()
                         reports["invalidated_fields"]=financial_keys
                         reports["invalidation_reason"]="Financial inputs imported; review the new figures and any reporting issues before relying on the valuation."
+                    if flagged:
+                        reports=company.setdefault("reports",{})
+                        reports["review_status"]="unresolved"
+                        evidence=reports.setdefault("disclosure_findings",{})
+                        for finding in flagged:
+                            evidence[finding['id']]={k:v for k,v in finding.items() if k not in {'id','import_key'}}
+                        reports["invalidation_reason"]="Selected disclosure passages require review; keyword matches are not confirmed accounting findings."
                     self.validate_stock(company,ticker)
                     write(ROOT/"runtime/revisions"/f"{ticker}-{uuid.uuid4().hex}.json",read(destination))
                     write(destination,company)
                     ledger_path=ROOT/"runtime/import-ledgers"/f"{ticker}.json"
                     ledger=read(ledger_path) if ledger_path.exists() else {}
-                    for candidate in chosen:
+                    for candidate in chosen+flagged:
                         if candidate.get("source_hash"):
                             # Mark a file complete only when every proposed row from it was selected.
                             all_rows=[r for r in preview["candidates"] if r.get("source_hash")==candidate["source_hash"]]
-                            if all(r["id"] in selected for r in all_rows):
+                            all_findings=[f for f in preview.get('findings',[]) if f.get('source_hash')==candidate['source_hash']]
+                            if all(r["id"] in selected for r in all_rows) and all(f['id'] in selected_findings for f in all_findings):
                                 ledger[candidate.get("import_key",candidate["source_hash"])]=candidate.get("source_file")
                     write(ledger_path,ledger)
                     preview_path.unlink()
-                return self.send(200,{"updated":len(chosen),"reporting_review_required":bool(financial_keys)})
+                return self.send(200,{"updated":len(chosen),"flagged":len(flagged),"reporting_review_required":bool(financial_keys or flagged)})
             if path in {"/api/calculate", "/api/scenarios", "/api/compare"}:
                 if payload.get("confirmed") is not True:
                     raise ValueError("Confirm the selected inputs and assumptions first")
@@ -364,6 +385,12 @@ class Handler(BaseHTTPRequestHandler):
         for key in ("review_note", "reviewed_on"):
             if key in reports and not isinstance(reports[key], str):
                 raise ValueError("Reporting review date and note must be text")
+        findings=reports.get('disclosure_findings',{})
+        if not isinstance(findings,dict):
+            raise ValueError('Disclosure findings must be an object keyed by evidence ID')
+        for finding in findings.values():
+            if not isinstance(finding,dict) or any(not isinstance(finding.get(key),str) for key in ('category','source_file','source_hash','excerpt')) or not isinstance(finding.get('source_page'),(str,int)):
+                raise ValueError('Disclosure evidence needs category, file, hash, page and excerpt')
         for key, field in data["fields"].items():
             if not isinstance(field, dict) or "value" not in field:
                 raise ValueError(f"{key}: expected a field object with value")

@@ -582,6 +582,7 @@ $("report-file").onchange=()=>{
   importPreview=null;$("import-proposals").replaceChildren();$("apply-import").disabled=true;$("import-confirmed").checked=false;
 };
 async function openImport(mode) {
+  $("import-findings").replaceChildren();
   if(!stockRecord) return;
   importMode=mode;importPreview=null;
   $("import-options").hidden=mode==="online";
@@ -613,13 +614,15 @@ $("run-import").onclick=async()=>{
     $("import-folder").textContent=importMode==="offline"?importPreview.folder:$("import-folder").textContent;
     $("import-status").textContent=[`${importPreview.candidates.length} proposed updates.`,...importPreview.warnings].join("\n");
     $("import-proposals").innerHTML=`<table><thead><tr><th>Apply</th><th>Figure</th><th>Saved</th><th>New</th><th>Period/date</th><th>Source / explanation</th></tr></thead><tbody>${importPreview.candidates.map(c=>`<tr><td><input type="checkbox" aria-label="Apply ${escapeHtml(c.key)}" value="${c.id}"></td><td>${escapeHtml(policyRecord.data.fields[c.key]?.label||c.key)}</td><td>${c.previous==null?"—":numeric(c.previous)}</td><td>${numeric(c.value)}</td><td>${escapeHtml(c.as_of)}</td><td class="import-note">${escapeHtml(c.source_file||"PSE EDGE")} · page ${escapeHtml(c.source_page||"—")} · ${escapeHtml(c.unit||"PHP/share")} · scale ${escapeHtml(c.scale??1)}<br>${escapeHtml(c.note)}</td></tr>`).join("")}</tbody></table>`;
-    $("apply-import").disabled=!importPreview.candidates.length;
+    $("import-findings").innerHTML=(importPreview.findings || []).length ? '<h3>Disclosure passages to review</h3><p class="help">Keyword matches, not confirmed accounting problems. Check context, including negation and whether the issue is historical or resolved. Only selected passages are saved as unresolved review items. At most 20 matches per file; selected pages only.</p>'+importPreview.findings.map(f=>`<label class="confirmation"><input type="checkbox" value="${escapeHtml(f.id)}"><span>${escapeHtml(f.category)} · ${escapeHtml(f.source_file)}, page ${escapeHtml(f.source_page)}<br>${escapeHtml(f.excerpt)}</span></label>`).join('') : (importMode==='online' ? '<p class="help">Disclosure screening requires a local report; online refresh checks the summary and price only.</p>' : '<p class="help">No disclosure keywords detected in the scanned text. This does not establish that the report is free of issues.</p>');
+    $("apply-import").disabled=!importPreview.candidates.length && !(importPreview.findings || []).length;
   }catch(error){$("import-status").textContent=error.message;}finally{$("run-import").disabled=false;}
 };
 $("apply-import").onclick=async()=>{
   try {
     const selected=[...$("import-proposals").querySelectorAll("input:checked")].map(input=>input.value);
-    const outcome=await api("/api/update-apply",{token:importPreview.token,selected,confirmed:$("import-confirmed").checked});
-    await chooseStock(stockRecord.data.ticker);$("import-dialog").close();status(`${outcome.updated} figures updated in the company brain.${outcome.reporting_review_required ? " Reporting review required; prior confirmation does not cover these imports." : ""}`);
+    const selected_findings=[...$("import-findings").querySelectorAll("input:checked")].map(input=>input.value);
+    const outcome=await api("/api/update-apply",{token:importPreview.token,selected,selected_findings,confirmed:$("import-confirmed").checked});
+    await chooseStock(stockRecord.data.ticker);$("import-dialog").close();status(`${outcome.updated} figures updated; ${outcome.flagged || 0} disclosure passages saved.${outcome.reporting_review_required ? " Reporting review required; prior confirmation does not cover these imports." : ""}`);
   }catch(error){$("import-status").textContent=error.message;}
 };

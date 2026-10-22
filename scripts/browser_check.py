@@ -206,6 +206,20 @@ def main():
                 page.locator("#apply-import").click()
                 page.locator("#import-dialog").wait_for(state="hidden")
                 assert server.read(test_root / "brain/BDO.toml")["fields"]["debt"]["value"] == 50000
+                (folder/'notice.txt').write_text('A material weakness was identified. Review of the affected statements is ongoing.',encoding='utf-8')
+                page.locator('#scan-reports').click()
+                expect(page.locator('#report-file option')).to_have_count(2)
+                page.locator('#report-file').select_option('notice.txt')
+                page.locator('#run-import').click()
+                expect(page.locator('#import-findings input[type="checkbox"]')).to_have_count(1)
+                page.locator('#import-findings input[type="checkbox"]').check()
+                page.locator('#import-confirmed').check()
+                page.locator('#apply-import').click()
+                page.locator('#import-dialog').wait_for(state='hidden')
+                reviewed=server.read(test_root/'brain/BDO.toml')
+                assert reviewed['reports']['review_status']=='unresolved'
+                assert len(reviewed['reports']['disclosure_findings'])==1
+                assert reviewed['fields']['debt']['value']==50000
                 page.locator("#all-stocks").click()
                 expect(page.locator("#search-results button")).to_have_count(stock_count)
                 page.locator("#stock-search").fill("AREIT")
