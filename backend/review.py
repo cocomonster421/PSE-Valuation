@@ -34,6 +34,8 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
             data_issues.append("Reporting: invalid review date")
     if report_status == "unresolved" and reports.get("review_note"):
         data_issues.append("Reporting note: " + reports["review_note"])
+    if report_status in {"unreviewed", "unresolved"} and reports.get("invalidation_reason"):
+        data_issues.append("Reporting: " + reports["invalidation_reason"])
     for key in policy["methods"][method]["fields"]+["price"]:
         value=inputs.get(key)
         if value is None:

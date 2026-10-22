@@ -12,6 +12,9 @@
 - [x] Preserve evidence in company-file round trips and saved analysis snapshots.
 - [x] Check missing/stale inputs, units and mixed periods; independently test key
   dividend and DCF calculations.
+- [x] Applying financial imports invalidates an earlier reporting review and records
+  affected fields and time. Existing unresolved issues and prior review notes persist.
+  Previewing a report or importing only a price does not reset financial review.
 
 ## Remaining
 
@@ -19,8 +22,6 @@
   payment periods and comparable revised earnings series.
 - [ ] Structured FCFF/FCFE reconciliation, including lease, financing and ownership
   consistency; helper calculations currently still need human review.
-- [ ] Automatically invalidate an earlier reporting review when new financial
-  information is imported; preserve any unresolved issue until explicitly reconciled.
 - [ ] Scan downloaded disclosures for possible restatement/audit issues and present
   source passages for review. No claim of automatic audit interpretation.
 - [ ] Automatic sensitivity with explained, editable ranges and conclusion-reversal

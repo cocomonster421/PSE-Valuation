@@ -3,6 +3,7 @@ import json
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -54,6 +55,44 @@ class LocalAPITests(unittest.TestCase):
         code, result = self.request("/api/calculate", body)
         self.assertEqual(code, 200)
         self.assertAlmostEqual(result["fair_value"], 102)
+
+    def test_import_invalidates_review_but_preserves_unresolved_issues(self):
+        for index, status in enumerate(('reviewed','reconciled','unresolved','unreviewed')):
+            with self.subTest(status=status):
+                ticker=f'REVIEW{index}'
+                reports={'review_status':status,'reviewed_on':'2026-10-22','review_note':'Prior review: revisions need reconciliation'}
+                stock={'ticker':ticker,'name':'Review fixture','industry':'Test','currency':'PHP','fields':{},'reports':reports}
+                server.write(server.ROOT / f'stock_data/{ticker}.json',stock)
+                folder=server.ROOT / f'reports/{ticker}'
+                folder.mkdir(parents=True)
+                (folder/'annual.txt').write_text('Operating profit 100,000',encoding='utf-8')
+                code,preview=self.request(f'/api/update/{ticker}',dict(mode='offline',file='annual.txt',period='2026-06-30',scale=1))
+                self.assertEqual(code,200)
+                # Preview alone must not invalidate a review.
+                self.assertEqual(self.request(f'/api/stocks/{ticker}')[1]['data']['reports'],reports)
+                code,outcome=self.request('/api/update-apply',dict(token=preview['token'],selected=['0'],confirmed=True))
+                self.assertEqual(code,200)
+                self.assertTrue(outcome['reporting_review_required'])
+                current=self.request(f'/api/stocks/{ticker}')[1]['data']['reports']
+                self.assertEqual(current['review_status'],'unresolved' if status=='unresolved' else 'unreviewed')
+                self.assertEqual(current['review_note'],reports['review_note'])
+                self.assertEqual(current['reviewed_on'],reports['reviewed_on'])
+                self.assertEqual(current['invalidated_fields'],['operating_profit'])
+                checked=self.request('/api/review',dict(ticker=ticker,method='pe',inputs={'eps':5,'multiple':10}))[1]
+                self.assertTrue(any('Financial inputs imported' in issue for issue in checked['issues']))
+
+    def test_price_only_refresh_preserves_financial_review(self):
+        ticker='PRICEONLY'
+        reports={'review_status':'reviewed','reviewed_on':'2026-10-22','review_note':'Reviewed filings'}
+        server.write(server.ROOT / f'stock_data/{ticker}.json',dict(ticker=ticker,name='Price fixture',industry='Test',currency='PHP',fields={},reports=reports))
+        rows=[dict(key='price',value=100,as_of='2026-10-23',note='Mock price source')]
+        with patch.object(server,'refresh_candidates',return_value=(rows,[])):
+            code,preview=self.request(f'/api/update/{ticker}',{'mode':'online'})
+        self.assertEqual(code,200)
+        code,outcome=self.request('/api/update-apply',dict(token=preview['token'],selected=['0'],confirmed=True))
+        self.assertEqual(code,200)
+        self.assertFalse(outcome['reporting_review_required'])
+        self.assertEqual(self.request(f'/api/stocks/{ticker}')[1]['data']['reports'],reports)
 
     def test_cross_origin_write_rejected(self):
         self.assertEqual(self.request("/api/scenarios", {}, origin=False)[0], 403)

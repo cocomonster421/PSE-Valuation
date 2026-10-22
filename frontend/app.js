@@ -556,6 +556,6 @@ $("apply-import").onclick=async()=>{
   try {
     const selected=[...$("import-proposals").querySelectorAll("input:checked")].map(input=>input.value);
     const outcome=await api("/api/update-apply",{token:importPreview.token,selected,confirmed:$("import-confirmed").checked});
-    await chooseStock(stockRecord.data.ticker);$("import-dialog").close();status(`${outcome.updated} figures updated in the company brain.`);
+    await chooseStock(stockRecord.data.ticker);$("import-dialog").close();status(`${outcome.updated} figures updated in the company brain.${outcome.reporting_review_required ? " Reporting review required; prior confirmation does not cover these imports." : ""}`);
   }catch(error){$("import-status").textContent=error.message;}
 };

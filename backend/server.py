@@ -246,6 +246,15 @@ class Handler(BaseHTTPRequestHandler):
                         if old_date and candidate["as_of"][:10]<old_date:
                             raise ValueError(f"{candidate['key']}: proposed data is older than saved data; preserve the newer baseline")
                         company["fields"][candidate["key"]]={k:v for k,v in candidate.items() if k not in {"id","key","previous"}}
+                    financial_keys=sorted({candidate["key"] for candidate in chosen if candidate["key"] != "price"})
+                    if financial_keys:
+                        reports=company.setdefault("reports", {})
+                        # Imported numbers do not reconcile a disclosure or renew a review.
+                        # Keep the prior note/date for auditability; status controls readiness.
+                        reports["review_status"]="unresolved" if reports.get("review_status")=="unresolved" else "unreviewed"
+                        reports["invalidated_on"]=datetime.now(timezone.utc).isoformat()
+                        reports["invalidated_fields"]=financial_keys
+                        reports["invalidation_reason"]="Financial inputs imported; review the new figures and any reporting issues before relying on the valuation."
                     self.validate_stock(company,ticker)
                     write(ROOT/"runtime/revisions"/f"{ticker}-{uuid.uuid4().hex}.json",read(destination))
                     write(destination,company)
@@ -259,7 +268,7 @@ class Handler(BaseHTTPRequestHandler):
                                 ledger[candidate.get("import_key",candidate["source_hash"])]=candidate.get("source_file")
                     write(ledger_path,ledger)
                     preview_path.unlink()
-                return self.send(200,{"updated":len(chosen)})
+                return self.send(200,{"updated":len(chosen),"reporting_review_required":bool(financial_keys)})
             if path in {"/api/calculate", "/api/scenarios", "/api/compare"}:
                 if payload.get("confirmed") is not True:
                     raise ValueError("Confirm the selected inputs and assumptions first")
