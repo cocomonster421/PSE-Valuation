@@ -72,6 +72,11 @@ the TEL case, and starts an extracted release independently.
 Tests validate calculations and software behavior, not source accuracy or investment
 performance. See [verification scope and commands](docs/VERIFICATION.md).
 
+Input confirmation preserves unresolved warnings. Company files can record reporting
+issues and dated assumption explanations; results distinguish illustrative scenarios
+from documented assumptions. See the [reliability checklist](docs/RELIABILITY_CHECKLIST.md)
+for implemented checks and remaining limitations.
+
 ## Getting started
 
 Requires **Python 3.11 or newer**. Download and extract the repository, keeping its

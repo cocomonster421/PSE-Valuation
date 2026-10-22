@@ -5,6 +5,37 @@ from backend.catalog import initial_policy
 
 
 class ReviewTests(unittest.TestCase):
+    def test_missing_assumptions_are_not_documented(self):
+        checked=review_inputs({'fields':{}},initial_policy(),'ddm',{})
+        self.assertEqual(checked['assumption_status'],'Illustrative scenario')
+        self.assertIn('discount_rate',checked['unsupported_assumptions'])
+
+    def test_documentation_requires_explicit_status_and_current_date(self):
+        stock={"models":{"pe":{"multiple":10,"note":"Peer sample and exclusions documented in local research", "as_of":"2026-10-22"}}}
+        inputs={"eps":5,"multiple":10}
+        checked=review_inputs(stock,initial_policy(),"pe",inputs,date(2026,10,22))
+        self.assertEqual(checked['assumption_status'],'Illustrative scenario')
+        stock['models']['pe']['evidence_status']='documented'
+        checked=review_inputs(stock,initial_policy(),"pe",inputs,date(2026,10,22))
+        self.assertEqual(checked['unsupported_assumptions'],[])
+        for change in ({'as_of':'2027-01-01'},{'as_of':'2020-01-01'},{'note':''}):
+            changed={**stock,'models':{'pe':{**stock['models']['pe'],**change}}}
+            self.assertEqual(review_inputs(changed,initial_policy(),"pe",inputs,date(2026,10,22))['assumption_status'],'Illustrative scenario')
+
+    def test_manual_assumption_cannot_inherit_saved_documentation(self):
+        stock={'models':{'pe':{'multiple':10,'note':'Documented comparison','as_of':'2026-10-22','evidence_status':'documented'}}}
+        checked=review_inputs(stock,initial_policy(),'pe',dict(eps=5,multiple=11),date(2026,10,22))
+        self.assertIn('multiple',checked['unsupported_assumptions'])
+
+    def test_reporting_issue_survives_reviewed_figures(self):
+        stock={'fields':{'bvps':{'value':10,'status':'reviewed','period_end':'2026-06-30','note':'Report'}},
+               'reports':{'review_status':'unresolved','review_note':'Audit opinion withdrawn; reconciliation pending'}}
+        checked=review_inputs(stock,initial_policy(),'pb',dict(bvps=10,multiple=1),date(2026,10,22))
+        self.assertEqual(checked['data_status'],'Needs review')
+        self.assertTrue(any('Audit opinion withdrawn' in issue for issue in checked['issues']))
+        stock['reports']={'review_status':'reconciled','review_note':'Checked revised report against prior inputs','reviewed_on':'2026-10-22'}
+        self.assertEqual(review_inputs(stock,initial_policy(),'pb',dict(bvps=10,multiple=1),date(2026,10,22))['data_status'],'Reviewed inputs')
+
     def test_missing_and_stale_are_visible(self):
         stock={"fields":{"eps":{"value":5,"period_end":"2020-12-31","status":"needs_review"}},"models":{"pe":{"multiple":10,"note":"Illustrative","as_of":"2025-01-01"}}}
         checked=review_inputs(stock,initial_policy(),"pe",{"eps":5,"multiple":10},date(2026,10,22))

@@ -1,0 +1,47 @@
+# Valuation reliability checklist
+
+## Implemented
+
+- [x] Confirmation acknowledges inputs without removing unresolved warnings.
+- [x] Show data review and assumption evidence separately, including beside results.
+- [x] Default and changed assumptions remain illustrative until their matching saved
+  values have an explicit documented status, basis and review date within 365 days.
+- [x] Edit assumption explanations and dates without replacing them with generic text.
+- [x] Store reporting review status and reconciliation notes in each company brain.
+  Unresolved issues remain visible even when individual figures are marked reviewed.
+- [x] Preserve evidence in company-file round trips and saved analysis snapshots.
+- [x] Check missing/stale inputs, units and mixed periods; independently test key
+  dividend and DCF calculations.
+
+## Remaining
+
+- [ ] Stronger period-duration checks: annual versus quarter/YTD/TTM, dividend
+  payment periods and comparable revised earnings series.
+- [ ] Structured FCFF/FCFE reconciliation, including lease, financing and ownership
+  consistency; helper calculations currently still need human review.
+- [ ] Automatically invalidate an earlier reporting review when new financial
+  information is imported; preserve any unresolved issue until explicitly reconciled.
+- [ ] Scan downloaded disclosures for possible restatement/audit issues and present
+  source passages for review. No claim of automatic audit interpretation.
+- [ ] Automatic sensitivity with explained, editable ranges and conclusion-reversal
+  warnings. The existing manual sensitivity tool remains available.
+- [ ] Batch review of all stocks with per-method issues and exportable results.
+- [ ] Independently reconcile worked examples across company types against filings
+  and a separate calculation before relying on their valuation conclusions.
+
+## How to record evidence
+
+Open **Edit company data**. Under **Valuation assumptions**, explain each saved
+assumption, enter the review date and choose **Basis documented by me**. Changing
+an input on the valuation screen does not inherit documentation for a different
+saved value. Documentation is a user's record, not independent verification.
+
+Under **Reporting review**, record any unresolved disclosure or revision. Change
+it to **Issue reconciled by me** only after checking the affected figures, with a
+date and explanation. Reviews older than 90 days are flagged. These thresholds
+are review reminders, not guarantees that newer data is reliable.
+
+Offline checks cannot discover new disclosures that have not been downloaded or
+recorded. Blank company templates remain blank; these checks do not fabricate data.
+The arithmetic can be tested independently, but forecast confidence must be judged
+company by company using evidence, sensitivity and model suitability.

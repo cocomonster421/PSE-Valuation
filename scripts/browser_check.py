@@ -32,6 +32,7 @@ def main():
         tel["fields"] = demo_stock()["fields"]
         tel["models"] = {"ddm":{"discount_rate":.12,"terminal_growth":.02},
                          "dcf_fcff":{"growth":.03}}
+        tel['reports']={'review_status':'unresolved','review_note':'Temporary test: pending report reconciliation'}
         server.write(test_root / "brain/TEL.toml", tel)
         stock_count = len(list((test_root / "brain").glob("*.toml")))
         server.ROOT = test_root
@@ -71,6 +72,10 @@ def main():
                 page.locator("#confirmed").check()
                 page.get_by_role("button", name="Calculate fair value").click()
                 page.locator(".fair-value").wait_for()
+                expect(page.locator('#input-readiness')).to_contain_text('Needs review')
+                expect(page.locator('#input-readiness')).not_to_contain_text('Ready')
+                expect(page.locator('#review-summary')).to_contain_text('Illustrative scenario')
+                expect(page.locator('#input-checks')).to_contain_text('pending report reconciliation')
                 expected = dividend * 1.02 / .1
                 assert f"{expected:,.2f}" in page.locator(".fair-value").inner_text()
                 page.locator("#sensitivity-field").select_option("discount_rate")
@@ -107,6 +112,12 @@ def main():
                 page.locator("#baseline-date-shares").fill("2026-10-21")
                 page.locator("#baseline-note-shares").fill("Browser QA edit; temporary data only")
                 page.locator("#model-ddm-discount_rate").fill("13")
+                page.locator('[data-model="ddm"] [data-model-note]').fill('Temporary research basis: return and growth scenarios explained')
+                page.locator('[data-model="ddm"] [data-model-date]').fill('2026-10-22')
+                page.locator('[data-model="ddm"] [data-model-evidence]').select_option('documented')
+                page.locator('#reporting-status').select_option('reconciled')
+                page.locator('#reporting-date').fill('2026-10-22')
+                page.locator('#reporting-note').fill('Temporary test: revised figures reconciled')
                 page.get_by_role("button", name="Save company data", exact=True).click()
                 page.locator("#stock-editor").wait_for(state="hidden")
                 updated = server.read(test_root / "brain/TEL.toml")
@@ -118,6 +129,9 @@ def main():
                 page.locator("#search-results button").filter(has_text="TEL ·").click()
                 page.locator("#edit-stock").click()
                 assert page.locator("#baseline-shares").input_value() == "216000000"
+                expect(page.locator('[data-model="ddm"] [data-model-note]')).to_have_value('Temporary research basis: return and growth scenarios explained')
+                expect(page.locator('[data-model="ddm"] [data-model-evidence]')).to_have_value('documented')
+                expect(page.locator('#reporting-status')).to_have_value('reconciled')
                 page.locator("#close-stock-editor").click()
                 page.locator("#method").select_option("ddm")
                 expect(page.locator("#input-discount_rate")).to_have_value("13")

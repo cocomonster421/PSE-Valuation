@@ -1,15 +1,44 @@
 """Explain input provenance and readiness without pretending to verify financial facts."""
 from datetime import date
 
+ASSUMPTIONS = {"growth", "discount_rate", "terminal_growth", "multiple", "discount",
+               "required_yield", "cap_rate", "roe", "payout"}
+
+
+def documented(evidence, today):
+    try:
+        dated = date.fromisoformat(evidence.get("as_of", "")[:10])
+        return (0 <= (today - dated).days <= 365
+                and evidence.get("evidence_status") == "documented"
+                and bool(evidence.get("note", "").strip()))
+    except (ValueError, TypeError):
+        return False
+
 
 def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
     today=today or date.today()
-    missing=[]; issues=[]; audit=[]; periods=set()
+    missing=[]; issues=[]; audit=[]; periods=set(); unsupported=[]; data_issues=[]
     model=stock.get("models",{}).get(method,{})
+    reports=stock.get("reports", {})
+    report_status=reports.get("review_status", "unreviewed")
+    if report_status not in {"reviewed", "reconciled"}:
+        data_issues.append("Reporting: " + ("unresolved disclosure or revision; reconcile affected figures before relying on this valuation" if report_status == "unresolved" else "disclosure review not recorded"))
+    elif not reports.get("review_note", "").strip() or not reports.get("reviewed_on"):
+        data_issues.append("Reporting: review needs a date and explanation")
+    else:
+        try:
+            age=(today-date.fromisoformat(reports["reviewed_on"][:10])).days
+            if age < 0 or age > 90:
+                data_issues.append("Reporting: review date is future-dated or more than 90 days old")
+        except (ValueError, TypeError):
+            data_issues.append("Reporting: invalid review date")
+    if report_status == "unresolved" and reports.get("review_note"):
+        data_issues.append("Reporting note: " + reports["review_note"])
     for key in policy["methods"][method]["fields"]+["price"]:
         value=inputs.get(key)
         if value is None:
             if key!="price": missing.append(policy["fields"][key]["label"])
+            if key in ASSUMPTIONS: unsupported.append(key)
             continue
         baseline_key=("fcff_cash_flow" if method=="dcf_fcff" else "fcfe_cash_flow") if key=="cash_flow" else key
         source=stock.get("fields",{}).get(baseline_key,{})
@@ -18,7 +47,7 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
             kind="Calculated from helper inputs"; evidence=derived
             issues.append(f"{key}: review the helper's inputs and source periods")
         elif key in model and model[key]==value:
-            kind="Company assumption"; evidence={"as_of":model.get("as_of"),"note":model.get("note")}
+            kind="Company assumption"; evidence={k:model.get(k) for k in ("as_of","note","evidence_status")}
         elif source.get("value")==value:
             kind="Saved company figure"; evidence=dict(source)
             if source.get("status")!="reviewed": issues.append(f"{key}: saved figure needs review")
@@ -32,6 +61,15 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
         else:
             kind="Manual or calculated input"; evidence={"note":"Changed from saved baseline; explain the basis in notes or the calculation trail."}
         if kind in {"Company assumption","Illustrative policy assumption"}: issues.append(f"{key}: assumption, not a reported fact")
+        if key in ASSUMPTIONS:
+            if not documented(evidence, today):
+                unsupported.append(key)
+                issues.append(f"{policy['fields'][key]['label']}: illustrative until saved with an explicit basis, review date and documented status (within 365 days)")
+        else:
+            if kind != "Saved company figure":
+                data_issues.append(f"{key}: manual or derived figure needs source reconciliation")
+            elif source.get("status") != "reviewed" or not (source.get("source_url") or source.get("note")) or not (source.get("as_of") or source.get("period_end")):
+                data_issues.append(f"{key}: source evidence or review is incomplete")
         dated=evidence.get("period_end") or evidence.get("as_of")
         if dated:
             try:
@@ -42,4 +80,13 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
             except (ValueError,TypeError): issues.append(f"{key}: invalid source date")
         audit.append({"field":key,"label":policy["fields"][key]["label"],"value":value,"unit":policy["fields"][key]["unit"],"kind":kind,"evidence":evidence})
     if len(periods)>1: issues.append("Inputs mix financial periods: "+", ".join(sorted(periods))+". Confirm they are comparable.")
-    return {"status":"Missing data" if missing else "Needs review" if issues else "Ready for input confirmation", "missing":missing,"issues":list(dict.fromkeys(issues)),"fields":audit,"checked_on":today.isoformat(),"note":"Readiness checks do not certify source accuracy. Prices use a 7-day review threshold by default; financials use 450 days. New disclosures may make data stale sooner."}
+    issues = list(dict.fromkeys(data_issues + issues))
+    # Documentation is not a certification; warnings survive input confirmation.
+    data_warnings = data_issues or [s for s in issues if any(term in s for term in
+        ("days old", "future", "invalid source date", "unit differs", "mix financial", "financial period", "saved figure needs review"))]
+    return {"status":"Missing data" if missing else "Needs review" if issues else "Ready for input confirmation",
+            "data_status":"Missing data" if missing else "Needs review" if data_warnings else "Reviewed inputs",
+            "assumption_status":"Illustrative scenario" if unsupported else "Documented assumptions (not independently verified)",
+            "unsupported_assumptions":unsupported, "reporting_status":report_status,
+            "missing":missing,"issues":issues,"fields":audit,"checked_on":today.isoformat(),
+            "note":"Confirmation acknowledges inputs; it does not clear warnings. Offline checks cannot discover disclosures absent from local records. Documentation does not certify accuracy or forecast quality."}

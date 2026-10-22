@@ -12,7 +12,8 @@ let reviewTimer, inputReview=null, derivations=[];
 function renderReadiness(){
   if(!inputReview)return;
   const checked=inputReview;
-  $("input-readiness").textContent=checked.missing.length ? "Missing data: "+checked.missing.join(", ") : $("confirmed").checked ? "Ready · inputs confirmed; review notes retained" : checked.status;
+  $("input-readiness").textContent=(checked.missing.length ? "Missing data: "+checked.missing.join(", ") : checked.status) + ($("confirmed").checked ? " · Inputs acknowledged" : "");
+  $("review-summary").textContent=`Data: ${checked.data_status || checked.status} · ${checked.assumption_status || "Assumptions need review"}`;
   $("input-checks").innerHTML=[...checked.issues,checked.note].map(t=>`<p class="help">${escapeHtml(t)}</p>`).join("");
 }
 function scheduleReview(){
@@ -53,6 +54,10 @@ function invalidate() {
   inputVersion++;
   result = null; lastInputs = null;
   sensitivity = null;
+  inputReview=null;
+  $("input-readiness").textContent="Checking inputs…";
+  $("review-summary").textContent="";
+  $("input-checks").replaceChildren();
   $("confirmed").checked = false;
   $("save-scenario").disabled = true; $("export-scenario").disabled = true;
   $("result").innerHTML = '<p class="muted">Enter inputs to calculate.</p>';
@@ -192,6 +197,9 @@ function collectInputs() {
 }
 function renderResult(value) {
   $("result").innerHTML = `<div class="help">${escapeHtml(policyRecord.data.methods[value.method].name)} · per share</div><div class="fair-value">${peso(value.fair_value)}</div>${value.gap == null ? '<p class="help">Add a reference price to compare.</p>' : `<span class="gap">${value.gap >= 0 ? "+" : ""}${(value.gap * 100).toFixed(1)}% vs reference price</span>`}${value.warnings.map(w=>`<p class="warning">${escapeHtml(w)}</p>`).join("")}<details open><summary>Calculation</summary>${value.steps.map(s=>`<div class="calculation"><span>${escapeHtml(readableFormula(s.label))}</span><strong>${numeric(s.present_value ?? s.value)}</strong></div>`).join("")}</details>`;
+  const qualification=document.createElement("p"); qualification.className="warning";
+  qualification.textContent=inputReview ? `${inputReview.assumption_status} · Data: ${inputReview.data_status}. Calculation completed; this is not a verified price target.` : "Review unavailable: treat this result as an illustrative scenario.";
+  $("result").prepend(qualification);
   $("save-scenario").disabled = false; $("export-scenario").disabled = false;
   if(value.formula) {const paragraph=document.createElement("p");paragraph.className="help";paragraph.textContent="Formula: "+value.formula;$("result").append(paragraph);}
   const exploration = document.createElement("div");
@@ -313,6 +321,9 @@ function openStockEditor() {
   $("stock-editor-title").textContent = `${stock.ticker} · company data`;
   $("company-name").value = stock.name; $("company-industry").value = stock.industry;
   $("company-rationale").value = stock.rationale || ""; $("company-notes").value = stock.notes || "";
+  $("reporting-status").value=stock.reports?.review_status || "unreviewed";
+  $("reporting-date").value=(stock.reports?.reviewed_on || "").slice(0,10);
+  $("reporting-note").value=stock.reports?.review_note || "";
   $("stock-editor-error").textContent = "";
   $("company-archetype").replaceChildren();
   for (const key of new Set([stock.archetype, ...Object.keys(policyRecord.data.recommendations)])) {
@@ -336,8 +347,11 @@ function openStockEditor() {
       row.innerHTML = `<label for="model-${method}-${key}">${escapeHtml(definition.label)} (${definition.unit === "rate" ? "%" : escapeHtml(definition.unit)})</label><input id="model-${method}-${key}" data-assumption="${key}" type="number" step="any" value="${escapeHtml(value)}">`;
       group.querySelector(".fields").append(row);
     }
-    const note = document.createElement("p"); note.className="help"; note.textContent=model.note || "Editable modeling assumptions.";group.append(note);
+    const evidence = document.createElement("div");
+    evidence.innerHTML=`<label>Assumption basis<textarea data-model-note rows="2">${escapeHtml(model.note || "")}</textarea></label><label>Review date<input data-model-date type="date" value="${escapeHtml((model.as_of || "").slice(0,10))}"></label><label>Evidence<select data-model-evidence><option value="illustrative">Illustrative / still researching</option><option value="documented">Basis documented by me</option></select></label><p class="help">Explain each assumption, its source or reasoning, and period. Documented does not mean independently verified.</p>`;
+    evidence.querySelector("[data-model-evidence]").value=model.evidence_status || "illustrative";group.append(evidence);
     group.addEventListener("input",()=>group.dataset.changed="true");
+    group.addEventListener("change",()=>group.dataset.changed="true");
     $("stock-models").append(group);
   }
   const assumptionKeys = new Set(["growth", "discount_rate", "terminal_growth", "multiple", "discount", "required_yield", "cap_rate"]);
@@ -363,6 +377,7 @@ $("stock-editor-form").onsubmit = async event => {
     const data = JSON.parse(JSON.stringify(stockRecord.data));
     data.name = $("company-name").value.trim(); data.industry = $("company-industry").value.trim();
     data.archetype = $("company-archetype").value; data.rationale = $("company-rationale").value.trim(); data.notes = $("company-notes").value;
+    data.reports={...(data.reports || {}),review_status:$("reporting-status").value,reviewed_on:$("reporting-date").value,review_note:$("reporting-note").value.trim()};
     data.models = data.models || {};
     for (const group of $("stock-models").querySelectorAll('fieldset[data-changed="true"]')) {
       const method = group.dataset.model;
@@ -371,8 +386,10 @@ $("stock-editor-form").onsubmit = async event => {
         const key=input.dataset.assumption;
         assumptions[key]=input.value === "" ? "" : Number(input.value)/(policyRecord.data.fields[key].unit === "rate" ? 100 : 1);
       }
-      assumptions.note="Manually updated company assumptions. Review before use.";
-      assumptions.as_of=new Date().toISOString(); data.models[method]=assumptions;
+      assumptions.note=group.querySelector("[data-model-note]").value.trim();
+      assumptions.as_of=group.querySelector("[data-model-date]").value;
+      assumptions.evidence_status=group.querySelector("[data-model-evidence]").value;
+      data.models[method]=assumptions;
     }
     for (const group of $("stock-editor-fields").querySelectorAll('fieldset[data-changed="true"]')) {
       const key = group.dataset.field;

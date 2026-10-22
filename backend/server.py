@@ -324,11 +324,19 @@ class Handler(BaseHTTPRequestHandler):
             if method not in METHODS or not isinstance(assumptions, dict):
                 raise ValueError("Use supported method IDs for company assumptions")
             for key, value in assumptions.items():
-                if key in {"note", "as_of"}:
+                if key in {"note", "as_of", "evidence_status"}:
                     if not isinstance(value, str):
                         raise ValueError("Assumption notes and dates must be text")
+                    if key == "evidence_status" and value not in {"illustrative", "documented"}:
+                        raise ValueError("Assumption evidence status must be illustrative or documented")
                 elif key not in METHODS[method][1] or (value != "" and (isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value))):
                     raise ValueError(f"{method}.{key}: enter a finite number or leave blank")
+        reports = data.get("reports", {})
+        if not isinstance(reports, dict) or reports.get("review_status", "unreviewed") not in {"unreviewed", "unresolved", "reviewed", "reconciled"}:
+            raise ValueError("Choose a supported reporting review status")
+        for key in ("review_note", "reviewed_on"):
+            if key in reports and not isinstance(reports[key], str):
+                raise ValueError("Reporting review date and note must be text")
         for key, field in data["fields"].items():
             if not isinstance(field, dict) or "value" not in field:
                 raise ValueError(f"{key}: expected a field object with value")

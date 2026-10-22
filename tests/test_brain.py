@@ -33,6 +33,19 @@ class BrainTests(unittest.TestCase):
         self.assertEqual(stock_path(self.root,"TEL"),self.path)
         self.assertEqual(stock_paths(self.root),[self.path])
 
+    def test_reporting_and_assumption_evidence_round_trip(self):
+        data=read(self.path)
+        data['reports']={'review_status':'unresolved','reviewed_on':'2026-10-22','review_note':'Pending reconciliation'}
+        data['models']['ddm'].update(evidence_status='documented',as_of='2026-10-22')
+        Handler.validate_stock(data,'TEL')
+        write(self.path,data)
+        restored=read(self.path)
+        self.assertEqual(restored['reports'],data['reports'])
+        self.assertEqual(restored['models'],data['models'])
+        data['reports']['review_status']='automatically_verified'
+        with self.assertRaises(ValueError):
+            Handler.validate_stock(data,'TEL')
+
     def test_nonfinite_or_text_value_rejected(self):
         content=self.path.read_text(encoding="utf-8")
         for value in ['nan', '"invalid"']:
