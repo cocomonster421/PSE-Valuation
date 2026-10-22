@@ -1,0 +1,398 @@
+"""Loopback-only, standard-library server. No internet or external runtime required."""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+import os
+import re
+import socket
+import threading
+import uuid
+from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer as BaseThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import urlsplit
+
+from backend.catalog import METHODS, initial_policy
+from backend.engine import calculate, compare, ENGINE_VERSION
+from backend.brain import decode as read_brain, encode as encode_brain, stock_path, stock_paths
+from backend.importer import document_candidates, refresh_candidates
+from backend.review import review_inputs
+
+ROOT = Path(__file__).resolve().parents[1]
+LOCK = threading.Lock()
+
+
+class ThreadingHTTPServer(BaseThreadingHTTPServer):
+    # Windows SO_REUSEADDR can allow a second process to take the same port.
+    allow_reuse_address = os.name != "nt"
+    allow_reuse_port = False
+
+    def server_bind(self):
+        if os.name=="nt":
+            self.socket.setsockopt(socket.SOL_SOCKET,socket.SO_EXCLUSIVEADDRUSE,1)
+        super().server_bind()
+
+
+def read(path):
+    if path.suffix == ".toml":
+        return read_brain(path)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"), parse_constant=lambda value: (_ for _ in ()).throw(ValueError("Non-finite number")))
+        if not isinstance(data, dict):
+            raise ValueError("Expected a JSON object")
+        return data
+    except (ValueError, UnicodeError) as error:
+        raise ValueError(f"Repair {path.name}: {error}") from error
+
+
+def write(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(f".{uuid.uuid4().hex}.tmp")
+    try:
+        temporary.write_text(encode_brain(data) if path.suffix == ".toml" else json.dumps(data, indent=2, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def revision(data):
+    return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
+
+
+def safe_id(value):
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", value):
+        raise ValueError("Invalid record identifier")
+    return value
+
+
+class Handler(BaseHTTPRequestHandler):
+    def send(self, status, value, content_type="application/json; charset=utf-8"):
+        payload = json.dumps(value, allow_nan=False).encode() if content_type.startswith("application/json") else value
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(payload)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'")
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def valid_host(self):
+        return self.headers.get("Host") in {f"localhost:{self.server.server_port}", f"127.0.0.1:{self.server.server_port}"}
+
+    def do_GET(self):
+        if not self.valid_host():
+            return self.send(403, {"error": "Use the localhost address"})
+        path = urlsplit(self.path).path
+        try:
+            if path.startswith("/api/reports/"):
+                ticker=safe_id(path.rsplit("/",1)[1])
+                read(stock_path(ROOT,ticker))
+                folder=ROOT/"reports"/ticker
+                folder.mkdir(parents=True,exist_ok=True)
+                return self.send(200,{"folder":str(folder.resolve()),"files":[p.name for p in sorted(folder.iterdir()) if p.is_file() and not p.is_symlink() and p.suffix.lower() in {".pdf",".html",".htm",".txt"}]})
+            if path.startswith("/api/brains/"):
+                ticker = safe_id(path.rsplit("/", 1)[1])
+                file = stock_path(ROOT, ticker)
+                company = read(file)
+                return self.send(200, file.read_bytes() if file.suffix == ".toml" else encode_brain(company).encode("utf-8"), "text/plain; charset=utf-8")
+            if path == "/api/stocks":
+                stocks = []
+                for p in stock_paths(ROOT):
+                    try:
+                        data = read(p)
+                        self.validate_stock(data, p.stem)
+                        stocks.append(data)
+                    except (ValueError, TypeError, KeyError):
+                        stocks.append({"ticker": p.stem, "name": "File needs repair", "industry": "Unavailable", "archetype": "Unavailable"})
+                return self.send(200, [{k: s.get(k) for k in ("ticker", "name", "industry", "archetype")} for s in stocks])
+            if path.startswith("/api/stocks/"):
+                data = read(stock_path(ROOT, safe_id(path.rsplit('/', 1)[1])))
+                self.validate_stock(data, path.rsplit('/', 1)[1])
+                return self.send(200, {"data": data, "revision": revision(data)})
+            if path == "/api/policy":
+                data = read(ROOT / "policies/catalog.json")
+                self.validate_policy(data)
+                return self.send(200, {"data": data, "revision": revision(data)})
+            if path == "/api/scenarios":
+                scenarios = []
+                for p in sorted((ROOT / "scenarios").glob("*.json")):
+                    try:
+                        saved = read(p)
+                        if not isinstance(saved.get("result"), dict) or not {"ticker", "id", "name", "saved_at", "notes"} <= saved.keys():
+                            raise ValueError("Invalid saved analysis")
+                        scenarios.append(saved)
+                    except (ValueError, TypeError):
+                        return self.send(422, {"error": f"Repair or move the invalid saved analysis {p.name}; other data is unchanged."})
+                return self.send(200, scenarios)
+            if path == "/api/health":
+                return self.send(200, {"status": "ok", "mode": "offline", "engine": ENGINE_VERSION})
+            static = {"/": ("index.html", "text/html; charset=utf-8"),
+                      "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+                      "/styles.css": ("styles.css", "text/css; charset=utf-8")}
+            if path in static:
+                file, mime = static[path]
+                return self.send(200, (ROOT / "frontend" / file).read_bytes(), mime)
+            self.send(404, {"error": "Not found"})
+        except FileNotFoundError as error:
+            self.send(404, {"error": str(error)})
+        except (ValueError, TypeError, KeyError) as error:
+            self.send(422, {"error": str(error)})
+        except OSError:
+            self.send(500, {"error": "Cannot read the local file. Check file permissions and try again."})
+
+    def do_POST(self):
+        origin = self.headers.get("Origin")
+        allowed = {f"http://localhost:{self.server.server_port}", f"http://127.0.0.1:{self.server.server_port}"}
+        if not self.valid_host() or origin not in allowed or self.headers.get("Content-Type", "").split(";")[0] != "application/json":
+            return self.send(403, {"error": "Writes require a same-origin local JSON request"})
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if not 0 < length <= 2_000_000:
+                raise ValueError("Request must be between 1 byte and 2 MB")
+            payload = json.loads(self.rfile.read(length), parse_constant=lambda x: (_ for _ in ()).throw(ValueError("Non-finite JSON number")))
+            if not isinstance(payload, dict):
+                raise ValueError("Request must be a JSON object")
+            path = urlsplit(self.path).path
+            if path=="/api/review":
+                stock=read(stock_path(ROOT,safe_id(payload["ticker"])))
+                return self.send(200,review_inputs(stock,read(ROOT/"policies/catalog.json"),payload["method"],payload["inputs"],derivations=payload.get("derivations",[])))
+            if path.startswith("/api/update/"):
+                ticker=safe_id(path.rsplit("/",1)[1])
+                company=read(stock_path(ROOT,ticker))
+                mode=payload.get("mode")
+                candidates=[];warnings=[];hashes={}
+                folder=ROOT/"reports"/ticker
+                folder.mkdir(parents=True,exist_ok=True)
+                ledger_path=ROOT/"runtime/import-ledgers"/f"{ticker}.json"
+                ledger=read(ledger_path) if ledger_path.exists() else {}
+                if mode=="online":
+                    candidates,warnings=refresh_candidates(company)
+                elif mode=="offline":
+                    import hashlib
+                    scale=payload.get("scale",1)
+                    if scale not in {1,1000,1000000}:
+                        raise ValueError("Choose pesos, thousands or millions")
+                    files=[p for p in sorted(folder.iterdir()) if p.suffix.lower() in {".pdf",".html",".htm",".txt"} and p.is_file()]
+                    selected_file=payload.get("file")
+                    if selected_file:
+                        files=[p for p in files if p.name==selected_file]
+                        if not files:
+                            raise ValueError("Selected report was not found. Reload the report list.")
+                    elif len(files)>1:
+                        raise ValueError("Select one report so its date and unit scale cannot be applied to other files.")
+                    if len(files)>30:
+                        raise ValueError("Keep at most 30 reports in this folder; archive older files elsewhere")
+                    for file in files:
+                        if file.is_symlink() or not file.resolve().is_relative_to(folder.resolve()):
+                            raise ValueError("Linked report files are not supported")
+                        if file.stat().st_size>30_000_000:
+                            warnings.append(f"{file.name}: exceeds 30 MB; use a smaller extract")
+                            continue
+                        digest=hashlib.sha256(file.read_bytes()).hexdigest()
+                        import_key=hashlib.sha256(json.dumps([digest,payload.get("pages",""),payload.get("period",""),scale]).encode()).hexdigest()
+                        if import_key in ledger:
+                            continue
+                        try:
+                            rows,digest,notes=document_candidates(file,payload.get("period",""),scale,payload.get("pages",""))
+                            hashes[file.name]=digest
+                            for row in rows:
+                                row["source_file"]=file.name;row["source_hash"]=digest;row["import_key"]=import_key
+                            candidates.extend(rows);warnings.extend(notes)
+                        except Exception as error:
+                            warnings.append(f"{file.name}: {error}")
+                else:
+                    raise ValueError("Choose offline scan or online refresh")
+                token=uuid.uuid4().hex
+                for index,candidate in enumerate(candidates):
+                    candidate["id"]=str(index)
+                    candidate["previous"]=company["fields"].get(candidate["key"],{}).get("value")
+                preview={"token":token,"ticker":ticker,"revision":revision(company),"mode":mode,"folder":str(folder),"candidates":candidates,"warnings":warnings,"hashes":hashes}
+                write(ROOT/"runtime/import-previews"/f"{token}.json",preview)
+                return self.send(200,preview)
+            if path=="/api/update-apply":
+                if payload.get("confirmed") is not True:
+                    raise ValueError("Confirm company, period, units and source rows before updating")
+                token=safe_id(payload["token"])
+                preview_path=ROOT/"runtime/import-previews"/f"{token}.json"
+                preview=read(preview_path);ticker=safe_id(preview["ticker"])
+                selected=payload.get("selected",[])
+                if not isinstance(selected,list) or not selected or any(not isinstance(i,str) for i in selected):
+                    raise ValueError("Select the figures to update")
+                chosen=[c for c in preview["candidates"] if c["id"] in selected]
+                if len({c["key"] for c in chosen})!=len(chosen):
+                    raise ValueError("Select only one proposed value per field; compare duplicate reports first")
+                if not chosen:
+                    raise ValueError("No selected figures were found")
+                with LOCK:
+                    destination=stock_path(ROOT,ticker);company=read(destination)
+                    if revision(company)!=preview["revision"]:
+                        return self.send(409,{"error":"Company data changed. Scan again before applying."})
+                    import hashlib
+                    for filename,digest in preview["hashes"].items():
+                        file=ROOT/"reports"/ticker/filename
+                        if not file.exists() or hashlib.sha256(file.read_bytes()).hexdigest()!=digest:
+                            raise ValueError("A source report changed. Scan again.")
+                    for candidate in chosen:
+                        old=company["fields"].get(candidate["key"],{})
+                        old_date=(old.get("period_end") or (old.get("as_of") if candidate["key"]=="price" else "") or "")[:10]
+                        if old_date and candidate["as_of"][:10]<old_date:
+                            raise ValueError(f"{candidate['key']}: proposed data is older than saved data; preserve the newer baseline")
+                        company["fields"][candidate["key"]]={k:v for k,v in candidate.items() if k not in {"id","key","previous"}}
+                    self.validate_stock(company,ticker)
+                    write(ROOT/"runtime/revisions"/f"{ticker}-{uuid.uuid4().hex}.json",read(destination))
+                    write(destination,company)
+                    ledger_path=ROOT/"runtime/import-ledgers"/f"{ticker}.json"
+                    ledger=read(ledger_path) if ledger_path.exists() else {}
+                    for candidate in chosen:
+                        if candidate.get("source_hash"):
+                            # Mark a file complete only when every proposed row from it was selected.
+                            all_rows=[r for r in preview["candidates"] if r.get("source_hash")==candidate["source_hash"]]
+                            if all(r["id"] in selected for r in all_rows):
+                                ledger[candidate.get("import_key",candidate["source_hash"])]=candidate.get("source_file")
+                    write(ledger_path,ledger)
+                    preview_path.unlink()
+                return self.send(200,{"updated":len(chosen)})
+            if path in {"/api/calculate", "/api/scenarios", "/api/compare"}:
+                if payload.get("confirmed") is not True:
+                    raise ValueError("Confirm the selected inputs and assumptions first")
+                result = calculate(payload["method"], payload["inputs"])
+                if path == "/api/compare":
+                    return self.send(200, compare(payload["method"], payload["inputs"], payload["field"], payload["low"], payload["high"]))
+                if path == "/api/calculate":
+                    return self.send(200, result)
+                ticker = safe_id(payload["ticker"])
+                stock = read(stock_path(ROOT, ticker))
+                policy = read(ROOT / "policies/catalog.json")
+                if payload.get("stock_revision") and payload["stock_revision"] != revision(stock):
+                    return self.send(409, {"error": "Company data changed since this analysis was loaded. Reload before saving."})
+                if payload.get("policy_revision") and payload["policy_revision"] != revision(policy):
+                    return self.send(409, {"error": "Method policies changed. Reload before saving."})
+                record = {"id": uuid.uuid4().hex, "name": str(payload.get("name", "Untitled scenario"))[:120],
+                    "ticker": ticker, "saved_at": datetime.now(timezone.utc).isoformat(),
+                    "notes": str(payload.get("notes", ""))[:10000], "result": result,
+                    "stock_snapshot": stock, "policy_snapshot": policy}
+                record["input_review"]=review_inputs(stock,policy,payload["method"],payload["inputs"],derivations=payload.get("derivations",[]))
+                record["derivations"]=payload.get("derivations",[])
+                if payload.get("sensitivity"):
+                    sensitivity = payload["sensitivity"]
+                    record["sensitivity"] = compare(payload["method"], payload["inputs"], sensitivity["field"], sensitivity["low"], sensitivity["high"])
+                with LOCK:
+                    write(ROOT / "scenarios" / f"{record['id']}.json", record)
+                return self.send(201, record)
+            if path == "/api/policy" or path.startswith("/api/stocks/"):
+                data = payload["data"]
+                if path == "/api/policy":
+                    self.validate_policy(data)
+                    destination = ROOT / "policies/catalog.json"
+                else:
+                    ticker = safe_id(path.rsplit("/", 1)[1])
+                    self.validate_stock(data, ticker)
+                    destination = stock_path(ROOT, ticker)
+                with LOCK:
+                    previous = read(destination)
+                    if payload.get("revision") != revision(previous):
+                        return self.send(409, {"error": "This file changed. Reload it before saving to avoid overwriting another edit."})
+                    write(ROOT / "runtime/revisions" / f"{destination.stem}-{uuid.uuid4().hex}.json", previous)
+                    write(destination, data)
+                return self.send(200, {"data": data, "revision": revision(data)})
+            self.send(404, {"error": "Not found"})
+        except (ValueError, KeyError, TypeError, OverflowError, FileNotFoundError) as error:
+            self.send(400, {"error": str(error)})
+        except OSError:
+            self.send(500, {"error": "Cannot save the local file. Check disk space and file permissions; the previous baseline was not replaced."})
+
+    @staticmethod
+    def validate_stock(data, ticker):
+        if not isinstance(data, dict):
+            raise ValueError("Company data must be an object")
+        if data.get("ticker") != ticker or any(not isinstance(data.get(key), str) or not data[key].strip() for key in ("name", "industry")):
+            raise ValueError("Stock needs matching ticker, name and industry")
+        if data.get("currency") != "PHP" or not isinstance(data.get("fields"), dict):
+            raise ValueError("Stock fields must be an object; valuation currency must be PHP")
+        models = data.get("models", {})
+        if not isinstance(models, dict):
+            raise ValueError("Company models must be an object")
+        for method, assumptions in models.items():
+            if method not in METHODS or not isinstance(assumptions, dict):
+                raise ValueError("Use supported method IDs for company assumptions")
+            for key, value in assumptions.items():
+                if key in {"note", "as_of"}:
+                    if not isinstance(value, str):
+                        raise ValueError("Assumption notes and dates must be text")
+                elif key not in METHODS[method][1] or (value != "" and (isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value))):
+                    raise ValueError(f"{method}.{key}: enter a finite number or leave blank")
+        for key, field in data["fields"].items():
+            if not isinstance(field, dict) or "value" not in field:
+                raise ValueError(f"{key}: expected a field object with value")
+            value = field["value"]
+            if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float))):
+                raise ValueError(f"{key}: value must be numeric or null")
+            if value is not None and not math.isfinite(value):
+                raise ValueError(f"{key}: value must be finite")
+            if value is not None and (not field.get("as_of") or not (field.get("source_url") or field.get("note"))):
+                raise ValueError(f"{key}: provide an effective date and source or explanatory note")
+
+    @staticmethod
+    def validate_policy(data):
+        if not isinstance(data, dict):
+            raise ValueError("Policy must be an object")
+        if not isinstance(data.get("methods"), dict) or set(data["methods"]) != set(METHODS):
+            raise ValueError("Keep the supported method IDs; formulas are implemented in Python")
+        for key, method in data["methods"].items():
+            if not isinstance(method, dict) or not isinstance(method.get("name"), str) or not isinstance(method.get("description"), str):
+                raise ValueError(f"{key}: method needs a name and description")
+            if method.get("fields") != METHODS[key][1]:
+                raise ValueError(f"{key}: required formula inputs cannot be removed or changed")
+        if not isinstance(data.get("defaults"), dict) or not isinstance(data.get("recommendations"), dict):
+            raise ValueError("Defaults and recommendations must be objects")
+        for choices in data["recommendations"].values():
+            if not isinstance(choices, list) or any(m not in METHODS for m in choices):
+                raise ValueError("Recommendations must list supported method IDs")
+        if not isinstance(data.get("fields"), dict) or any(key not in data["fields"] for method in METHODS.values() for key in method[1]):
+            raise ValueError("All required fields need descriptions")
+        original = initial_policy()
+        for key, definition in original["fields"].items():
+            field = data.get("fields", {}).get(key)
+            if not isinstance(field, dict) or field.get("unit") != definition["unit"]:
+                raise ValueError(f"{key}: preserve the calculation unit {definition['unit']}")
+            if not isinstance(field.get("label"), str) or not isinstance(field.get("help"), str):
+                raise ValueError(f"{key}: needs label and help text")
+        for key, value in data["defaults"].items():
+            if key not in original["fields"] or isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                raise ValueError(f"{key}: default must be a finite numeric value for a supported field")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--open-browser",action="store_true")
+    args = parser.parse_args()
+    policy = ROOT / "policies/catalog.json"
+    if not policy.exists():
+        write(policy, initial_policy())
+    (ROOT / "scenarios").mkdir(exist_ok=True)
+    for company_file in (ROOT / "brain").glob("*.toml"):
+        (ROOT / "reports" / company_file.stem).mkdir(parents=True, exist_ok=True)
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
+    except OSError as error:
+        print(f"Cannot start on port {args.port}. Close the other launcher or run python run.py --port 8766. Details: {error}",flush=True)
+        return
+    print(f"Valuation Workbench: http://127.0.0.1:{args.port} (Ctrl+C to stop)", flush=True)
+    if args.open_browser:
+        import webbrowser
+        threading.Timer(.5,lambda:webbrowser.open(f"http://127.0.0.1:{args.port}")).start()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+
+
+if __name__ == "__main__":
+    main()

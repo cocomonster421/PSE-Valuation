@@ -1,0 +1,3 @@
+# Install once while online. Valuation remains offline; these enable saved HTML/PDF imports.
+beautifulsoup4>=4.12,<5
+pypdf>=5,<7

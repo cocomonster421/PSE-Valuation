@@ -1,0 +1,18 @@
+{
+  "name": "Synthetic dividend valuation mechanics",
+  "purpose": "Invented example inputs, not a real company valuation.",
+  "method": "ddm",
+  "inputs": {
+    "dividend": 10,
+    "discount_rate": 0.12,
+    "terminal_growth": 0.02,
+    "price": 100
+  },
+  "expected_fair_value": 102,
+  "sensitivity": {
+    "field": "discount_rate",
+    "low": 0.1,
+    "high": 0.14
+  },
+  "notes": "All numbers are synthetic. Filename retained for compatibility with the replay command."
+}

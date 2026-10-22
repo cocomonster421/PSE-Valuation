@@ -1,0 +1,4 @@
+beautifulsoup4==4.13.4
+pypdf==5.4.0
+soupsieve==2.8.3
+typing_extensions==4.15.0
