@@ -1,0 +1,541 @@
+"use strict";
+const $ = id => document.getElementById(id);
+const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+const peso = value => new Intl.NumberFormat("en-PH", {style:"currency",currency:"PHP",maximumFractionDigits:2}).format(value);
+const numeric = value => new Intl.NumberFormat("en-PH", {maximumFractionDigits:2}).format(value);
+const readableFormula = text => text.replace(/\b\d+(?:\.\d+)?e[+-]?\d+\b/gi, n => new Intl.NumberFormat("en-PH", {maximumFractionDigits:10}).format(Number(n)));
+let stocks = [], stockRecord, policyRecord, result, lastInputs, editTarget, savedScenarios = [], sensitivity = null;
+let statusTimer;
+let inputVersion = 0;
+let stockRequest = 0;
+let reviewTimer, inputReview=null, derivations=[];
+function renderReadiness(){
+  if(!inputReview)return;
+  const checked=inputReview;
+  $("input-readiness").textContent=checked.missing.length ? "Missing data: "+checked.missing.join(", ") : $("confirmed").checked ? "Ready · inputs confirmed; review notes retained" : checked.status;
+  $("input-checks").innerHTML=[...checked.issues,checked.note].map(t=>`<p class="help">${escapeHtml(t)}</p>`).join("");
+}
+function scheduleReview(){
+  clearTimeout(reviewTimer);
+  if(!stockRecord || !$("method").value)return;
+  const version=inputVersion;
+  reviewTimer=setTimeout(async()=>{try{
+    const checked=await api("/api/review",{ticker:stockRecord.data.ticker,method:$("method").value,inputs:collectInputs(),derivations});
+    if(version!==inputVersion)return;
+    inputReview=checked;
+    renderReadiness();
+  }catch(error){$("input-readiness").textContent="Readiness check unavailable: "+error.message;}},180);
+}
+function baselineKey(method, key) { return key === "cash_flow" ? (method === "dcf_fcff" ? "fcff_cash_flow" : "fcfe_cash_flow") : key; }
+const simpleNames = {dcf_fcff:"DCF",ddm:"Dividend valuation (DDM)",dividend_cap:"Dividend valuation",pe:"Earnings valuation (P/E)",pb:"Book-value valuation (P/B)",nav:"Asset valuation (NAV)",sotp:"Asset valuation (SOTP)",rnav:"Asset valuation (RNAV)"};
+function basicMethods() {
+  const profile = stockRecord.data.archetype;
+  return ["dcf_fcff", profile === "REIT" ? "dividend_cap" : "ddm", "pe", "pb", profile === "CONGLOMERATE" ? "sotp" : profile === "PROPERTY_DEVELOPER" ? "rnav" : "nav"];
+}
+function preparedInput(method, key) {
+  const model = stockRecord.data.models?.[method];
+  if (model && Object.hasOwn(model, key)) return model[key] === "" ? null : model[key];
+  return stockRecord.data.fields[baselineKey(method,key)]?.value ?? policyRecord.data.defaults[key] ?? null;
+}
+function missingInputs(method) {return policyRecord.data.methods[method].fields.filter(key=>preparedInput(method,key)==null);}
+function status(message) { $("status").textContent = message; clearTimeout(statusTimer); statusTimer = setTimeout(() => $("status").textContent = "", 8000); }
+async function api(path, body) {
+  const response = await fetch(path, body === undefined ? {} : {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
+function safeLink(url, label="Source") {
+  try { const parsed = new URL(url); if (["https:","http:"].includes(parsed.protocol)) return `<a href="${escapeHtml(parsed.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`; } catch {}
+  return "No source link";
+}
+function invalidate() {
+  inputVersion++;
+  result = null; lastInputs = null;
+  sensitivity = null;
+  $("confirmed").checked = false;
+  $("save-scenario").disabled = true; $("export-scenario").disabled = true;
+  $("result").innerHTML = '<p class="muted">Enter inputs to calculate.</p>';
+  scheduleReview();
+}
+function renderSearch() {
+  const query = $("stock-search").value.trim().toLowerCase();
+  const matches = stocks.filter(s => !query || `${s.ticker} ${s.name}`.toLowerCase().includes(query));
+  $("search-results").replaceChildren();
+  for (const s of matches) {
+    const button = document.createElement("button"); button.type = "button";
+    button.textContent = `${s.ticker} · ${s.name}`; button.onclick = () => chooseStock(s.ticker).catch(e=>status(e.message));
+    $("search-results").append(button);
+  }
+  if (!matches.length) $("search-results").textContent = "No matching company in the local data folder.";
+}
+async function chooseStock(ticker) {
+  const request = ++stockRequest;
+  invalidate();
+  $("workspace").hidden = true;
+  const loaded = await api(`/api/stocks/${encodeURIComponent(ticker)}`);
+  if (request !== stockRequest) return;
+  stockRecord = loaded;
+  derivations=[]; inputReview=null;
+  for(const [key,[label,value]] of Object.entries(rateFields)) $("rate-"+key).value=value;
+  const s = stockRecord.data, price = s.fields.price;
+  $("refresh-online").disabled=false;
+  $("rate-risk_free").value = s.benchmark?.rate_value != null ? Number((s.benchmark.rate_value * 100).toFixed(5)) : 5;
+  $("rate-result").textContent = s.benchmark?.rate_value != null ? `Saved risk-free benchmark: ${s.benchmark.source_name || "Source unspecified"}, ${s.benchmark.effective_date || "date unavailable"}. Other rate components are illustrative until reviewed.` : "No company benchmark saved. All rate components are illustrative until reviewed.";
+  $("stock-search").value = `${s.ticker} · ${s.name}`;
+  $("search-results").replaceChildren();
+  $("company").hidden = false;
+  $("company").innerHTML = `<div class="company-card"><div class="ticker">${escapeHtml(s.ticker)}</div><div><h2>${escapeHtml(s.name)}</h2><div class="help">${escapeHtml(s.industry)} · ${escapeHtml(s.archetype.replaceAll("_"," "))}</div></div><div class="quote"><small>LAST SAVED PRICE</small><br><strong>${price?.value ? peso(price.value) : "Unavailable"}</strong><div class="help">${escapeHtml(price?.as_of || "Date unavailable")}<br>Historical snapshot · offline</div></div></div>`;
+  const links = document.createElement("div"); links.className = "company-links";
+  links.innerHTML = `${safeLink(s.pse_edge_url, s.pse_edge_url?.includes("cmpy_id=") ? "PSE EDGE ↗" : "PSE EDGE directory ↗")} <a href="/api/brains/${encodeURIComponent(s.ticker)}" target="_blank" rel="noopener">View brain file ↗</a><span class="help">brain/${escapeHtml(s.ticker)}.toml</span>`;
+  $("company").append(links);
+  $("workspace").hidden = false;
+  $("recommendation").textContent = s.rationale;
+  renderMethods();
+  $("scenario-name").value = `${s.ticker} · base case`;
+  $("scenario-notes").value = "";
+  const history = s.history || [];
+  $("history").innerHTML = history.length ? `<table><thead><tr><th>Metric</th><th>Period end</th><th>Value / unit</th><th>Review status</th><th>Evidence</th></tr></thead><tbody>${history.map(f=>`<tr><td>${escapeHtml(f.metric)}</td><td>${escapeHtml(f.period_end)}</td><td>${escapeHtml(f.value)} ${escapeHtml(f.unit)}</td><td>${escapeHtml(f.status)}</td><td>${safeLink(f.source?.source_url)}</td></tr>`).join("")}</tbody></table>` : '<p class="help">No historical facts imported. Add reviewed figures through Edit company data.</p>';
+}
+function renderMethods(selected) {
+  const policy = policyRecord.data;
+  const recommended = policy.recommendations[stockRecord.data.archetype] || [];
+  const available = $("advanced-methods").checked ? Object.keys(policy.methods) : basicMethods();
+  const sorted = [...recommended.filter(m=>available.includes(m)), ...available.filter(m=>!recommended.includes(m))];
+  $("method").replaceChildren();
+  for (const key of sorted) {
+    const option = document.createElement("option"); option.value = key;
+    const missing = missingInputs(key).length;
+    option.textContent = `${recommended.includes(key) ? "★ " : ""}${simpleNames[key] || policy.methods[key].name} · ${missing ? `${missing} missing` : "Inputs available"}`;
+    $("method").append(option);
+  }
+  $("method").value = selected && sorted.includes(selected) ? selected : sorted.find(m=>recommended.includes(m) && !missingInputs(m).length) || sorted[0];
+  renderFields();
+}
+function renderFields(overrides) {
+  derivations=[];
+  const policy = policyRecord.data, method = policy.methods[$("method").value];
+  $("rate-calculator").hidden = !method.fields.includes("discount_rate");
+  const recommended = policy.recommendations[stockRecord.data.archetype] || [];
+  $("method-description").textContent = `${method.description} ${recommended.includes($("method").value) ? "Suggested for this company profile; verify that the inputs meet this method’s definitions." : "Outside this profile’s recommendations. Document why it fits the business before relying on it."}`;
+  const missing = missingInputs($("method").value);
+  $("method-readiness").textContent = missing.length ? `Missing: ${missing.map(key=>fieldDefinition($("method").value,key).label).join(", ")}` : "Prefilled from company brain. Review, then calculate.";
+  $("fields").replaceChildren();
+  for (const key of [...method.fields, "price"]) {
+    const definition = fieldDefinition($("method").value,key);
+    const source = Object.hasOwn(stockRecord.data.models?.[$("method").value]||{},key) ? null : stockRecord.data.fields[baselineKey($("method").value, key)];
+    const initial = overrides && Object.hasOwn(overrides,key) ? overrides[key] : preparedInput($("method").value,key) ?? "";
+    const value = definition.unit === "rate" && initial !== "" ? Number((initial * 100).toFixed(8)) : initial;
+    const field = document.createElement("div"); field.className="field";
+    const selectedModel=stockRecord.data.models?.[$("method").value];
+    const sourceText = overrides ? "Saved input · review required" : selectedModel && Object.hasOwn(selectedModel,key) ? `Company assumption · ${selectedModel.as_of || "Date unavailable"}` : source?.value != null ? `${source.status || "Review required"} · ${source.period_end || source.as_of || "Date unavailable"}` : initial !== "" ? "Illustrative policy assumption" : "Required input";
+    field.innerHTML = `<label for="input-${escapeHtml(key)}">${escapeHtml(definition.label)} <small>${definition.unit === "rate" ? "%" : escapeHtml(definition.unit)}</small></label><input id="input-${escapeHtml(key)}" data-key="${escapeHtml(key)}" type="number" step="any" ${key === "price" ? "" : "required"} value="${escapeHtml(value)}"><details class="field-help"><summary>Details</summary><p class="help">${escapeHtml(definition.help)}</p>${source?.note ? `<p class="help">${escapeHtml(source.note)}</p>` : ""}</details><small class="provenance">${escapeHtml(sourceText)}${source?.source_url ? ` · ${safeLink(source.source_url)}` : ""}</small>`;
+    field.querySelector("input").addEventListener("input", () => {
+      field.querySelector(".provenance").textContent = "Edited input · document your basis";
+      derivations=derivations.filter(d=>d.output_field!==key);
+      invalidate();
+      showCurrentRatios();
+    });
+    const model = stockRecord.data.models?.[$("method").value];
+    if (model && Object.hasOwn(model,key) && model.note) {
+      const note = document.createElement("p"); note.className="help"; note.textContent=model.note;
+      field.querySelector("details").append(note);
+    }
+    $("fields").append(field);
+  }
+  invalidate();
+  showCurrentRatios();
+  renderCashHelper();
+}
+function fieldDefinition(method,key) {
+  const field={...policyRecord.data.fields[key]};
+  if(key==="multiple" && method==="pe") field.help="Choose a comparison P/E using dated observations from similar businesses or this company's own history. Compare the same earnings basis (for example, trailing annual EPS), profitability, growth and debt; explain exclusions and your selected ratio in Notes / sources. Current price ÷ EPS gives current P/E, not an independent fair-value target. Practice example only: EPS 5 × an illustrative comparison P/E of 12 = 60. The 12 is not an industry average. Leave this blank until you have a basis, or use DEMO for practice.";
+  if(key==="multiple") field.label=method==="pe"?"Comparison P/E":method==="pb"?"Comparison P/B":"Comparison price / cash earnings";
+  if(key==="terminal_growth" && method==="ddm") field.label="Long-run dividend growth";
+  if(key==="cash_flow" && method==="dcf_fcfe") {
+    field.label="Annual cash available to shareholders";
+    field.help="Shareholder cash (FCFE) = business cash (FCFF) − interest expense × (1 − tax rate) + new borrowing − debt repayments. Alternatively use net income + non-cash charges − capital investment − increase in operating working capital + net borrowing. Use cash after financing, discount at shareholders' required return, and do not subtract debt again.";
+  }
+  if(key==="terminal_growth" && ["justified_pb","residual_income"].includes(method)) {
+    field.label="Long-run growth";
+    field.help="With stable positive ROE and no new share issuance, growth = ROE × earnings retained. A growth rate above ROE needs another financing explanation. Residual income assumes the payout changes after year 5 to support this long-run growth.";
+  }
+  if(["nav","rnav"].includes(method) && key==="asset_value") {
+    field.label="Reviewed gross asset value";
+    field.help="Enter assets before deducting liabilities, using the same ownership scope as the liabilities and shares. For RNAV use reviewed current property/project values. Do not enter an already-net equity value here.";
+  }
+  if(["nav","rnav"].includes(method) && key==="liabilities") {
+    field.label="Liabilities and other claims against those assets";
+    field.help="Subtract all liabilities and non-common claims relating to the entered gross assets, using the same ownership scope. Do not use only parent-company debt, and do not subtract a liability twice.";
+  }
+  return field;
+}
+function showCurrentRatios() {
+  const method=$("method").value, key=method==="pe"?"eps":method==="pb"?"bvps":null;
+  $("current-ratios").hidden=!key;
+  if(!key) return;
+  const price=Number($("input-price")?.value), amount=Number($("input-"+key)?.value);
+  const name=method==="pe"?"P/E":"P/B", label=policyRecord.data.fields[key].label;
+  $("current-ratios").textContent=price>0 && amount>0 ? `Current ${name} = Share price (${numeric(price)}) ÷ ${label} (${numeric(amount)}) = ${numeric(price/amount)}×. Fair value uses the separate Comparison ${name} below; using this current ratio would just return the current price.` : `Enter a positive Share price and ${label} to calculate current ${name}.`;
+}
+function collectInputs() {
+  const inputs = {};
+  for (const input of $("fields").querySelectorAll("input")) {
+    if (input.value === "") continue;
+    const value = Number(input.value);
+    inputs[input.dataset.key] = policyRecord.data.fields[input.dataset.key].unit === "rate" ? value/100 : value;
+  }
+  return inputs;
+}
+function renderResult(value) {
+  $("result").innerHTML = `<div class="help">${escapeHtml(policyRecord.data.methods[value.method].name)} · per share</div><div class="fair-value">${peso(value.fair_value)}</div>${value.gap == null ? '<p class="help">Add a reference price to compare.</p>' : `<span class="gap">${value.gap >= 0 ? "+" : ""}${(value.gap * 100).toFixed(1)}% vs reference price</span>`}${value.warnings.map(w=>`<p class="warning">${escapeHtml(w)}</p>`).join("")}<details open><summary>Calculation</summary>${value.steps.map(s=>`<div class="calculation"><span>${escapeHtml(readableFormula(s.label))}</span><strong>${numeric(s.present_value ?? s.value)}</strong></div>`).join("")}</details>`;
+  $("save-scenario").disabled = false; $("export-scenario").disabled = false;
+  if(value.formula) {const paragraph=document.createElement("p");paragraph.className="help";paragraph.textContent="Formula: "+value.formula;$("result").append(paragraph);}
+  const exploration = document.createElement("div");
+  exploration.innerHTML = '<hr><h3>Sensitivity</h3><label for="sensitivity-field">Assumption to vary</label><select id="sensitivity-field"></select><div class="fields"><div><label for="sensitivity-low">Lower input</label><input id="sensitivity-low" type="number" step="any"></div><div><label for="sensitivity-high">Higher input</label><input id="sensitivity-high" type="number" step="any"></div></div><button type="button" id="sensitivity-run" class="quiet">Compare values</button><div id="sensitivity-results"></div>';
+  $("result").append(exploration);
+  for (const key of policyRecord.data.methods[value.method].fields) {
+    const option = document.createElement("option"); option.value = key;
+    const field = fieldDefinition(value.method,key); option.textContent = `${field.label} (${field.unit === "rate" ? "%" : field.unit})`;
+    $("sensitivity-field").append(option);
+  }
+  function resetSensitivity() {
+    sensitivity = null; $("sensitivity-results").replaceChildren();
+    const key = $("sensitivity-field").value, rate = policyRecord.data.fields[key].unit === "rate";
+    const base = lastInputs[key] * (rate ? 100 : 1), delta = rate ? 1 : Math.abs(base) * .1 || 1;
+    $("sensitivity-low").value = Number((base - delta).toFixed(8)); $("sensitivity-high").value = Number((base + delta).toFixed(8));
+  }
+  $("sensitivity-field").onchange = resetSensitivity;
+  for (const id of ["sensitivity-low", "sensitivity-high"]) $(id).oninput = () => {sensitivity=null;$("sensitivity-results").replaceChildren();};
+  resetSensitivity();
+  $("sensitivity-run").onclick = async () => {
+    try {
+      const key = $("sensitivity-field").value, divisor = policyRecord.data.fields[key].unit === "rate" ? 100 : 1;
+      if ($("sensitivity-low").value === "" || $("sensitivity-high").value === "") throw new Error("Enter both sensitivity inputs.");
+      const low = Number($("sensitivity-low").value)/divisor, high = Number($("sensitivity-high").value)/divisor;
+      if (low >= high) throw new Error("The lower input must be below the higher input.");
+      const version = inputVersion;
+      const compared = await api("/api/compare", {method:value.method, inputs:lastInputs, field:key, low, high, confirmed:true});
+      if (version !== inputVersion) return;
+      sensitivity = {field:key, low, high};
+      $("sensitivity-results").innerHTML = `<table><thead><tr><th>Case</th><th>Input</th><th>Fair value</th></tr></thead><tbody>${compared.cases.map(c=>`<tr><td>${escapeHtml(c.label)}</td><td>${numeric(c.input*divisor)}${divisor===100?"%":""}</td><td>${peso(c.result.fair_value)}</td></tr>`).join("")}</tbody></table>`;
+    } catch(error) {status(error.message);}
+  };
+}
+$("stock-search").addEventListener("input", renderSearch);
+$("stock-search").addEventListener("focus", renderSearch);
+$("all-stocks").onclick=()=>{$("stock-search").value="";renderSearch();};
+$("method").addEventListener("change", ()=>renderFields());
+$("advanced-methods").addEventListener("change", ()=>renderMethods($("method").value));
+$("reset").onclick = ()=>renderFields();
+$("confirmed").onchange=renderReadiness;
+$("valuation-form").onsubmit = async event => {
+  event.preventDefault();
+  try {
+    const inputs = collectInputs();
+    const version = inputVersion;
+    const response = await api("/api/calculate", {method:$("method").value, inputs, confirmed:$("confirmed").checked});
+    const checked=await api("/api/review",{ticker:stockRecord.data.ticker,method:$("method").value,inputs,derivations});
+    if (version !== inputVersion) return;
+    inputReview=checked;
+    renderReadiness();
+    result = response; lastInputs = inputs; renderResult(result);
+  } catch (error) { status(error.message); }
+};
+const rateFields = {risk_free:["Government-rate starting point (%)",5], beta:["Market sensitivity (beta)",1], premium:["Extra return for stock-market risk (%)",6], debt_cost:["Yearly borrowing cost before tax (%)",7], tax:["Tax rate on interest deductions (%)",25], debt_weight:["Debt share of total funding (%)",30]};
+$("rate-fields").innerHTML = Object.entries(rateFields).map(([key,[label,value]])=>`<div><label for="rate-${key}">${label}</label><input id="rate-${key}" type="number" step="any" value="${value}"></div>`).join("");
+$("apply-rate").onclick = () => {
+  const read = key => { const text=$("rate-"+key).value; if(text==="") throw new Error("Fill all discount-rate components"); return Number(text); };
+  try {
+    const rf=read("risk_free")/100, beta=read("beta"), premium=read("premium")/100, debt=read("debt_cost")/100, tax=read("tax")/100, weight=read("debt_weight")/100;
+    if(tax<0||tax>1||weight<0||weight>1||rf<0||premium<0||debt<0) throw new Error("Check rate components; tax and debt weight must be 0–100%.");
+    const equity=rf+beta*premium;
+    const fcff=$("method").value==="dcf_fcff", rate=fcff ? equity*(1-weight)+debt*(1-tax)*weight : equity;
+    if(!$("input-discount_rate")) throw new Error("This method does not use a discount rate.");
+    $("input-discount_rate").value=(rate*100).toFixed(4); invalidate();
+    $("rate-result").textContent=`${fcff ? "WACC" : "Cost of equity"}: ${(rate*100).toFixed(2)}%. Components are illustrative until you verify them.`;
+    $("scenario-notes").value += `\nDiscount-rate basis: rf=${rf}, beta=${beta}, ERP=${premium}, debt cost=${debt}, tax=${tax}, debt weight=${weight}; ${fcff ? "WACC" : "cost of equity"}=${rate}.`;
+  } catch(e) { status(e.message); }
+};
+function scenarioPayload() {return {ticker:stockRecord.data.ticker, stock_revision:stockRecord.revision, policy_revision:policyRecord.revision, method:result.method, inputs:lastInputs, sensitivity, derivations, confirmed:true, name:$("scenario-name").value, notes:$("scenario-notes").value};}
+$("save-scenario").onclick = async()=>{try { if(!result) return; await api("/api/scenarios", scenarioPayload()); status("Analysis saved in the scenarios folder."); }catch(e){status(e.message);}};
+$("export-scenario").onclick = ()=>{
+  if(!result) return;
+  const data={...scenarioPayload(),result,input_review:inputReview,stock_snapshot:stockRecord.data,policy_snapshot:policyRecord.data};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
+  const a=document.createElement("a");a.href=url;a.download=`${stockRecord.data.ticker}-valuation.json`;a.click();URL.revokeObjectURL(url);
+};
+async function loadSavedAnalysis(s) {
+  try {
+    if(!policyRecord.data.methods[s.result.method]) throw new Error("This saved method is unavailable in the current policies.");
+    await chooseStock(s.ticker);
+    if(!basicMethods().includes(s.result.method)) $("advanced-methods").checked=true;
+    renderMethods(s.result.method);
+    renderFields(s.result.inputs);
+    derivations=structuredClone(s.derivations || []).filter(d=>d.output_field==="working_capital_increase" || s.result.inputs[d.output_field]===d.value);
+    for(const d of derivations) {
+      d.origin = d.origin || {saved_at:s.saved_at, name:s.name};
+      for(const [key,value] of Object.entries(d.inputs || {})) {
+        const input=$("derive-"+key);
+        if(input) input.value=value;
+        if(key==="tax") $("rate-tax").value=value*100;
+      }
+    }
+    if(derivations.length) {
+      const note=document.createElement("p");note.className="help";
+      note.textContent="Saved helper evidence restored from the original analysis, not refreshed company data. Review its dates in Data checks; Use calculated figures replaces it with the helper values shown.";
+      $("cash-helper").prepend(note);
+    }
+    $("scenario-name").value=s.name;$("scenario-notes").value=s.notes;
+    scheduleReview();
+    status("Saved inputs loaded. Review against current company data before recalculating.");
+    $("workspace").scrollIntoView({behavior:"smooth"});
+  } catch(error) {status(error.message);}
+}
+$("open-library").onclick=async()=>{try{
+  savedScenarios=await api("/api/scenarios");$("library").hidden=false;$("saved-list").replaceChildren();
+  if(!savedScenarios.length) $("saved-list").textContent="No analyses saved yet. Calculate a valuation, then save it here.";
+  for(const s of savedScenarios){const row=document.createElement("div");row.className="saved-item";row.innerHTML=`<p>${escapeHtml(s.name)}<small>${escapeHtml(s.ticker)} · ${escapeHtml(s.saved_at)} · ${peso(s.result.fair_value)}</small></p>`;const button=document.createElement("button");button.className="quiet";button.textContent="Load inputs";button.onclick=()=>loadSavedAnalysis(s);row.append(button);$("saved-list").append(row);}
+  $("library").scrollIntoView({behavior:"smooth"});
+}catch(e){status(e.message);}};
+$("close-library").onclick=()=>$("library").hidden=true;
+function openEditor(target) {editTarget=target;$("editor-title").textContent=target==="stock"?`Edit ${stockRecord.data.ticker} baseline`:"Edit method policies";$("editor-json").value=JSON.stringify((target==="stock"?stockRecord:policyRecord).data,null,2);$("editor-error").textContent="";$("editor").showModal();}
+$("edit-stock").onclick=()=>openStockEditor();$("edit-policy").onclick=()=>openPolicyEditor();$("close-editor").onclick=()=>$("editor").close();
+$("editor-form").onsubmit=async event=>{event.preventDefault();try{const data=JSON.parse($("editor-json").value);const record=editTarget==="stock"?stockRecord:policyRecord;const path=editTarget==="stock"?`/api/stocks/${stockRecord.data.ticker}`:"/api/policy";const updated=await api(path,{data,revision:record.revision});if(editTarget==="policy")policyRecord=updated;await chooseStock(stockRecord.data.ticker);$("editor").close();status("Local file saved; previous version backed up. Inputs reset to updated defaults.");}catch(e){$("editor-error").textContent=e.message;}};
+Promise.all([api("/api/stocks"),api("/api/policy")]).then(([s,p])=>{stocks=s;policyRecord=p;renderRateHelp();renderSearch();$("demo-start").hidden=!stocks.some(s=>s.ticker==="DEMO");}).catch(e=>status(e.message));
+$("try-demo").onclick=()=>chooseStock("DEMO").catch(e=>status(e.message));
+
+function openStockEditor() {
+  const stock = stockRecord.data;
+  $("stock-editor-title").textContent = `${stock.ticker} · company data`;
+  $("company-name").value = stock.name; $("company-industry").value = stock.industry;
+  $("company-rationale").value = stock.rationale || ""; $("company-notes").value = stock.notes || "";
+  $("stock-editor-error").textContent = "";
+  $("company-archetype").replaceChildren();
+  for (const key of new Set([stock.archetype, ...Object.keys(policyRecord.data.recommendations)])) {
+    const option = document.createElement("option"); option.value = key; option.textContent = key.replaceAll("_", " ");
+    $("company-archetype").append(option);
+  }
+  $("company-archetype").value = stock.archetype;
+  $("stock-editor-fields").replaceChildren();
+  $("stock-models").replaceChildren();
+  for (const method of basicMethods()) {
+    const model = stock.models?.[method] || {};
+    const keys = policyRecord.data.methods[method].fields.filter(key=>["growth","terminal_growth","discount_rate","multiple","discount","required_yield"].includes(key));
+    if (!keys.length) continue;
+    const group = document.createElement("fieldset"); group.dataset.model = method;
+    group.innerHTML = `<legend>${escapeHtml(simpleNames[method])}</legend><div class="fields"></div>`;
+    for (const key of keys) {
+      const definition = policyRecord.data.fields[key];
+      const initial = Object.hasOwn(model,key) ? model[key] : policyRecord.data.defaults[key] ?? "";
+      const value = initial === "" ? "" : initial * (definition.unit === "rate" ? 100 : 1);
+      const row = document.createElement("div");
+      row.innerHTML = `<label for="model-${method}-${key}">${escapeHtml(definition.label)} (${definition.unit === "rate" ? "%" : escapeHtml(definition.unit)})</label><input id="model-${method}-${key}" data-assumption="${key}" type="number" step="any" value="${escapeHtml(value)}">`;
+      group.querySelector(".fields").append(row);
+    }
+    const note = document.createElement("p"); note.className="help"; note.textContent=model.note || "Editable modeling assumptions.";group.append(note);
+    group.addEventListener("input",()=>group.dataset.changed="true");
+    $("stock-models").append(group);
+  }
+  const assumptionKeys = new Set(["growth", "discount_rate", "terminal_growth", "multiple", "discount", "required_yield", "cap_rate"]);
+  for (const [key, definition] of Object.entries(policyRecord.data.fields)) {
+    if (key === "cash_flow") continue;
+    if (assumptionKeys.has(key) && !stock.fields[key]) continue;
+    const original = stock.fields[key] || {};
+    const value = original.value == null ? "" : definition.unit === "rate" ? Number((original.value * 100).toFixed(8)) : original.value;
+    const fieldset = document.createElement("fieldset"); fieldset.dataset.field = key;
+    fieldset.innerHTML = `<legend>${escapeHtml(definition.label)} · ${definition.unit === "rate" ? "%" : escapeHtml(definition.unit)}</legend><p class="help">${escapeHtml(definition.help)}</p><div class="fields"><div><label for="baseline-${escapeHtml(key)}">Value</label><input id="baseline-${escapeHtml(key)}" data-property="value" type="number" step="any" value="${escapeHtml(value)}"></div><div><label for="baseline-date-${escapeHtml(key)}">Effective / publication date</label><input id="baseline-date-${escapeHtml(key)}" data-property="as_of" type="date" value="${escapeHtml((original.as_of || "").slice(0,10))}"></div><div><label for="baseline-source-${escapeHtml(key)}">Source URL</label><input id="baseline-source-${escapeHtml(key)}" data-property="source_url" type="url" value="${escapeHtml(original.source_url || "")}"></div><div><label for="baseline-status-${escapeHtml(key)}">Review status</label><select id="baseline-status-${escapeHtml(key)}" data-property="status"><option value="needs_review">Needs review</option><option value="reviewed">Reviewed by me</option><option value="historical">Historical reference</option></select></div><div><label for="baseline-period-${escapeHtml(key)}">Financial period end</label><input id="baseline-period-${escapeHtml(key)}" data-property="period_end" type="date" value="${escapeHtml((original.period_end || "").slice(0,10))}"></div><div><label for="baseline-note-${escapeHtml(key)}">Basis / notes</label><textarea id="baseline-note-${escapeHtml(key)}" data-property="note" rows="2">${escapeHtml(original.note || "")}</textarea></div></div>`;
+    fieldset.querySelector('[data-property="status"]').value = ["needs_review","reviewed","historical"].includes(original.status) ? original.status : "needs_review";
+    fieldset.addEventListener("input", () => fieldset.dataset.changed = "true");
+    fieldset.addEventListener("change", () => fieldset.dataset.changed = "true");
+    $("stock-editor-fields").append(fieldset);
+  }
+  $("stock-editor").showModal();
+}
+$("close-stock-editor").onclick = () => $("stock-editor").close();
+$("stock-advanced").onclick = () => {$("stock-editor").close(); openEditor("stock");};
+$("stock-editor-form").onsubmit = async event => {
+  event.preventDefault();
+  try {
+    const data = JSON.parse(JSON.stringify(stockRecord.data));
+    data.name = $("company-name").value.trim(); data.industry = $("company-industry").value.trim();
+    data.archetype = $("company-archetype").value; data.rationale = $("company-rationale").value.trim(); data.notes = $("company-notes").value;
+    data.models = data.models || {};
+    for (const group of $("stock-models").querySelectorAll('fieldset[data-changed="true"]')) {
+      const method = group.dataset.model;
+      const assumptions = {...(data.models[method] || {})};
+      for (const input of group.querySelectorAll("[data-assumption]")) {
+        const key=input.dataset.assumption;
+        assumptions[key]=input.value === "" ? "" : Number(input.value)/(policyRecord.data.fields[key].unit === "rate" ? 100 : 1);
+      }
+      assumptions.note="Manually updated company assumptions. Review before use.";
+      assumptions.as_of=new Date().toISOString(); data.models[method]=assumptions;
+    }
+    for (const group of $("stock-editor-fields").querySelectorAll('fieldset[data-changed="true"]')) {
+      const key = group.dataset.field;
+      const field = {...(data.fields[key] || {})};
+      for (const input of group.querySelectorAll("[data-property]")) {
+        field[input.dataset.property] = input.dataset.property === "value" ? (input.value === "" ? null : Number(input.value) / (policyRecord.data.fields[key].unit === "rate" ? 100 : 1)) : input.value;
+      }
+      field.updated_at = new Date().toISOString(); data.fields[key] = field;
+    }
+    await api(`/api/stocks/${data.ticker}`, {data, revision:stockRecord.revision});
+    stocks = await api("/api/stocks");
+    await chooseStock(data.ticker); $("stock-editor").close();
+    status("Company data saved. Previous version backed up; valuation inputs refreshed.");
+  } catch(error) {$("stock-editor-error").textContent = error.message;}
+};
+
+function openPolicyEditor() {
+  const policy = policyRecord.data;
+  $("policy-editor-error").textContent = "";
+  $("policy-defaults").replaceChildren();
+  const keys = new Set(["growth", "terminal_growth", "discount_rate", "discount", "required_yield", "multiple", ...Object.keys(policy.defaults)]);
+  for (const key of keys) {
+    const field = policy.fields[key], rate = field.unit === "rate";
+    const value = policy.defaults[key] == null ? "" : policy.defaults[key] * (rate ? 100 : 1);
+    const row = document.createElement("div");
+    row.innerHTML = `<label for="policy-default-${escapeHtml(key)}">${escapeHtml(field.label)} (${rate ? "%" : escapeHtml(field.unit)})</label><input id="policy-default-${escapeHtml(key)}" data-key="${escapeHtml(key)}" type="number" step="any" value="${escapeHtml(value)}">`;
+    $("policy-defaults").append(row);
+  }
+  $("policy-recommendations").replaceChildren();
+  for (const [profile, methods] of Object.entries(policy.recommendations)) {
+    const group = document.createElement("fieldset"); group.dataset.profile = profile;
+    group.innerHTML = `<legend>${escapeHtml(profile.replaceAll("_", " "))}</legend>`;
+    for (const key of [...methods, ...Object.keys(policy.methods).filter(key=>!methods.includes(key))]) {
+      const label = document.createElement("label"); label.className = "confirmation";
+      const check = document.createElement("input"); check.type = "checkbox"; check.value = key; check.checked = methods.includes(key);
+      const text = document.createElement("span"); text.textContent = policy.methods[key].name;
+      label.append(check, text); group.append(label);
+    }
+    $("policy-recommendations").append(group);
+  }
+  $("policy-editor").showModal();
+}
+$("close-policy-editor").onclick = () => $("policy-editor").close();
+$("policy-advanced").onclick = () => {$("policy-editor").close();openEditor("policy");};
+$("policy-editor-form").onsubmit = async event => {
+  event.preventDefault();
+  try {
+    const data = JSON.parse(JSON.stringify(policyRecord.data));
+    for (const input of $("policy-defaults").querySelectorAll("input")) {
+      const key = input.dataset.key;
+      if (input.value === "") delete data.defaults[key];
+      else data.defaults[key] = Number(input.value)/(data.fields[key].unit === "rate" ? 100 : 1);
+    }
+    for (const group of $("policy-recommendations").querySelectorAll("fieldset")) {
+      data.recommendations[group.dataset.profile] = [...group.querySelectorAll("input:checked")].map(input=>input.value);
+    }
+    policyRecord = await api("/api/policy", {data, revision:policyRecord.revision});
+    renderMethods($("method").value); $("policy-editor").close();
+    status("Policies saved; review the updated valuation inputs.");
+  } catch(error) {$("policy-editor-error").textContent = error.message;}
+};
+
+function renderRateHelp() {
+  for(const [key,text] of Object.entries(policyRecord.data.rate_help || {})) {
+    const parent=$("rate-"+key)?.parentElement;
+    if(parent && !parent.querySelector("details")) {
+      const details=document.createElement("details");details.className="field-help";
+      const summary=document.createElement("summary");summary.textContent="What is this?";
+      const paragraph=document.createElement("p");paragraph.className="help";paragraph.textContent=text;
+      details.append(summary,paragraph);parent.append(details);
+    }
+  }
+}
+function rememberDerivation(item) {
+  derivations=derivations.filter(d=>d.output_field!==item.output_field);
+  item.calculated_at=new Date().toISOString();
+  item.source_note="Helper entries are editable; source snapshots are reference evidence, not proof of each entered value.";
+  derivations.push(item);
+}
+function renderCashHelper() {
+  $("cash-helper").replaceChildren();
+  if($("method").value!=="dcf_fcff") return;
+  const keys=["operating_profit","depreciation","other_noncash","capital_spending","additional_capex","working_capital_increase","debt","cash","other_claims"];
+  const details=document.createElement("details");details.className="advanced";
+  details.innerHTML='<summary>Calculate cash flow and net debt from report figures</summary><p class="help">Use annual figures in full pesos, with consistent company scope and period. Business cash = Operating profit × (1 − tax rate) + Depreciation + Other non-cash adjustments − Equipment/property spending − Other capital investment − Working-capital increase. Net claims = Debt − Available cash + Other claims. Enter zero only after checking an adjustment does not apply.</p><div class="fields cash-helper-fields"></div><button id="apply-derived-cash" type="button" class="quiet">Use calculated figures</button>';
+  for(const key of keys) {
+    const field=policyRecord.data.fields[key],value=stockRecord.data.fields[key]?.value??"";
+    const row=document.createElement("div");row.innerHTML=`<label for="derive-${key}">${escapeHtml(field.label)}</label><input id="derive-${key}" type="number" step="any" value="${escapeHtml(value)}"><p class="help">${escapeHtml(field.help)}</p>`;
+    details.querySelector(".fields").append(row);
+  }
+  $("cash-helper").append(details);
+  const wc=document.createElement("details");
+  wc.innerHTML='<summary>Calculate the working-capital increase</summary><p class="help">Working capital here = Operating trade receivables + Inventory − Operating trade payables. Increase = current-year total − previous-year total. Use comparable year-end balances; add other operating movements to the result if material. This is a starting bridge, not a substitute for reviewing the cash-flow notes.</p><div class="fields"></div><button type="button" id="derive-working-capital">Use working-capital increase</button>';
+  const wcKeys=["receivables","inventory","payables","previous_receivables","previous_inventory","previous_payables","other_working_capital_change"];
+  for(const key of wcKeys){const row=document.createElement("div");row.innerHTML=`<label for="derive-${key}">${escapeHtml(policyRecord.data.fields[key].label)}</label><input type="number" step="any" id="derive-${key}" value="${escapeHtml(stockRecord.data.fields[key]?.value??"")}">`;wc.querySelector(".fields").append(row);}
+  details.append(wc);
+  $("derive-working-capital").onclick=()=>{
+    if(wcKeys.some(k=>$("derive-"+k).value==="")){status("Enter all six balances and the other operating change; use zero only when verified.");return;}
+    const v=Object.fromEntries(wcKeys.map(k=>[k,Number($("derive-"+k).value)]));
+    const change=v.receivables+v.inventory-v.payables-(v.previous_receivables+v.previous_inventory-v.previous_payables)+v.other_working_capital_change;
+    $("derive-working_capital_increase").value=change;
+    $("scenario-notes").value+=`\nWorking-capital increase = (${v.receivables} + ${v.inventory} − ${v.payables}) − (${v.previous_receivables} + ${v.previous_inventory} − ${v.previous_payables}) + ${v.other_working_capital_change} = ${change}.`;
+    rememberDerivation({output_field:"working_capital_increase",value:change,inputs:v,formula:"current receivables + inventory − payables − (previous receivables + inventory − payables) + other operating change",sources:structuredClone(stockRecord.data.fields)});
+    invalidate();status("Working-capital increase filled. Use calculated figures to update cash flow.");
+  };
+  $("apply-derived-cash").onclick=()=>{
+    const values=Object.fromEntries(keys.map(key=>[key,$("derive-"+key).value===""?null:Number($("derive-"+key).value)]));
+    let applied=false;
+    if(["operating_profit","depreciation","other_noncash","capital_spending","additional_capex","working_capital_increase"].every(k=>values[k]!=null)) {
+      if($("rate-tax").value===""){status("Enter the tax rate in the discount rate calculator; blank is not zero.");return;}
+      const tax=Number($("rate-tax").value)/100;
+      if(!Number.isFinite(tax)||tax<0||tax>1){status("Check the tax rate in the discount rate calculator.");return;}
+      const cash=values.operating_profit*(1-tax)+values.depreciation+values.other_noncash-Math.abs(values.capital_spending)-Math.abs(values.additional_capex)-values.working_capital_increase;
+      $("input-cash_flow").value=cash;applied=true;
+      $("scenario-notes").value+=`\nBusiness cash = ${values.operating_profit} × (1 − ${tax}) + ${values.depreciation} + ${values.other_noncash} − ${Math.abs(values.capital_spending)} − ${Math.abs(values.additional_capex)} − ${values.working_capital_increase} = ${cash}.`;
+      rememberDerivation({output_field:"cash_flow",value:cash,inputs:{...values,tax},formula:"operating profit × (1 − tax) + depreciation + other noncash − abs(capital spending) − abs(other investment) − working-capital increase",sources:structuredClone(stockRecord.data.fields)});
+    }
+    if(values.debt!=null && values.cash!=null && values.other_claims!=null){const claims=values.debt-values.cash+values.other_claims;$("input-net_debt").value=claims;applied=true;$("scenario-notes").value+=`\nNet claims = ${values.debt} − ${values.cash} + ${values.other_claims} = ${claims}.`;rememberDerivation({output_field:"net_debt",value:claims,inputs:{debt:values.debt,cash:values.cash,other_claims:values.other_claims},formula:"debt − available cash + other claims",sources:structuredClone(stockRecord.data.fields)});}
+    if(applied){invalidate();status("Calculated figures applied. Review before valuing.");}else status("Complete the cash-flow inputs and adjustments, or debt, available cash and other claims. Missing is not zero.");
+  };
+}
+
+let importMode="offline", importPreview=null;
+$("report-file").onchange=()=>{
+  $("report-period").value="";$("report-scale").value="1";$("report-pages").value="";
+  importPreview=null;$("import-proposals").replaceChildren();$("apply-import").disabled=true;$("import-confirmed").checked=false;
+};
+async function openImport(mode) {
+  if(!stockRecord) return;
+  importMode=mode;importPreview=null;
+  $("import-options").hidden=mode==="online";
+  $("import-folder").textContent=mode==="online"?"Fetch the latest available PSE EDGE price, EPS and book value. Saved data remains unchanged until you apply the selected updates.":`Put downloaded PDF, saved HTML or text reports in reports/${stockRecord.data.ticker}/. Select one report below. Saved PSE EDGE HTML supplies its dates. For PDF/text, confirm that report's annual period and units.`;
+  $("run-import").textContent=mode==="online"?"Fetch from PSE EDGE":"Scan selected report";
+  $("import-status").textContent="";$("import-proposals").replaceChildren();$("apply-import").disabled=true;$("import-confirmed").checked=false;
+  $("import-dialog").showModal();
+  if(mode==="offline") {
+    $("run-import").disabled=true;
+    try {
+      const listing=await api(`/api/reports/${stockRecord.data.ticker}`);
+      $("import-folder").textContent=`Company folder: ${listing.folder}. Copy this path into File Explorer to add PDF, saved HTML or text reports. Reopen this window after adding a file. Review the proposed rows; missing figures must be entered through Edit company data. Assumptions still need your own basis.`;
+      $("report-file").replaceChildren();
+      for(const name of listing.files){const option=document.createElement("option");option.value=name;option.textContent=name;$("report-file").append(option);}
+      $("report-period").value="";$("report-scale").value="1";$("report-pages").value="";
+      $("import-status").textContent=listing.files.length?"Select one report and confirm its own period and units.":"No reports found. Add a file, then reopen this window.";
+      $("run-import").disabled=!listing.files.length;
+    }catch(error){$("import-status").textContent=error.message;}
+  }
+}
+$("refresh-online").onclick=async()=>{await openImport("online");$("run-import").disabled=false;$("run-import").click();};
+$("scan-reports").onclick=()=>openImport("offline");
+$("close-import").onclick=()=>$("import-dialog").close();
+$("run-import").onclick=async()=>{
+  $("import-confirmed").checked=false;
+  $("run-import").disabled=true;$("apply-import").disabled=true;$("import-status").textContent=importMode==="online"?"Fetching official pages…":"Reading local reports…";
+  try {
+    importPreview=await api(`/api/update/${stockRecord.data.ticker}`,{mode:importMode,file:$("report-file").value,pages:$("report-pages").value,period:$("report-period").value,scale:Number($("report-scale").value)});
+    $("import-folder").textContent=importMode==="offline"?importPreview.folder:$("import-folder").textContent;
+    $("import-status").textContent=[`${importPreview.candidates.length} proposed updates.`,...importPreview.warnings].join("\n");
+    $("import-proposals").innerHTML=`<table><thead><tr><th>Apply</th><th>Figure</th><th>Saved</th><th>New</th><th>Period/date</th><th>Source / explanation</th></tr></thead><tbody>${importPreview.candidates.map(c=>`<tr><td><input type="checkbox" aria-label="Apply ${escapeHtml(c.key)}" value="${c.id}"></td><td>${escapeHtml(policyRecord.data.fields[c.key]?.label||c.key)}</td><td>${c.previous==null?"—":numeric(c.previous)}</td><td>${numeric(c.value)}</td><td>${escapeHtml(c.as_of)}</td><td class="import-note">${escapeHtml(c.source_file||"PSE EDGE")} · page ${escapeHtml(c.source_page||"—")} · ${escapeHtml(c.unit||"PHP/share")} · scale ${escapeHtml(c.scale??1)}<br>${escapeHtml(c.note)}</td></tr>`).join("")}</tbody></table>`;
+    $("apply-import").disabled=!importPreview.candidates.length;
+  }catch(error){$("import-status").textContent=error.message;}finally{$("run-import").disabled=false;}
+};
+$("apply-import").onclick=async()=>{
+  try {
+    const selected=[...$("import-proposals").querySelectorAll("input:checked")].map(input=>input.value);
+    const outcome=await api("/api/update-apply",{token:importPreview.token,selected,confirmed:$("import-confirmed").checked});
+    await chooseStock(stockRecord.data.ticker);$("import-dialog").close();status(`${outcome.updated} figures updated in the company brain.`);
+  }catch(error){$("import-status").textContent=error.message;}
+};

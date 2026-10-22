@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+runtime/
+scenarios/*.json
+!scenarios/.gitkeep
+.pytest_cache/
+node_modules/
+reports/**/*
+!reports/**/
+!reports/**/.gitkeep

@@ -1,0 +1,195 @@
+# COMPANY BRAIN — edit the numbers below and save.
+# Missing value = "". Rates are decimals: 0.10 means 10%.
+# Money totals are actual PHP; shares are actual share counts.
+# Financials are reported data. Models contain editable assumptions.
+
+[company]
+ticker = "DEMO"
+name = "Example Consumer Company (synthetic)"
+industry = "Example consumer business"
+archetype = "OPERATING_COMPANY"
+currency = "PHP"
+pse_edge_url = ""
+rationale = "Synthetic example for learning the workflow. All numbers are invented."
+notes = "Not a real listed company or investment recommendation."
+
+[financials]
+price = 50
+eps = 5
+bvps = 40
+dividend = 2
+shares = 1000000
+operating_profit = 10000000
+depreciation = 1000000
+other_noncash = 0
+capital_spending = 3000000
+additional_capex = 0
+working_capital_increase = 500000
+debt = 4000000
+cash = 2000000
+other_claims = 0
+fcff_cash_flow = 5000000
+net_debt = 2000000
+receivables = 3000000
+inventory = 2000000
+payables = 1000000
+previous_receivables = 2500000
+previous_inventory = 1800000
+previous_payables = 800000
+other_working_capital_change = 0
+
+[models.pe]
+multiple = 12
+as_of = "2026-10-22"
+note = "Illustrative comparison P/E, not a market average."
+
+[models.dcf_fcff]
+growth = 0
+terminal_growth = 0
+discount_rate = 0.1
+as_of = "2026-10-22"
+note = "Synthetic constant-cash case: 5 million / 10% − 2 million net debt, divided by 1 million shares = PHP 48."
+
+# Source dates and notes — update these when changing a reported figure.
+
+[sources.price]
+status = "reviewed"
+as_of = "2026-10-22"
+period_end = ""
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.eps]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.bvps]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.dividend]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.shares]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.operating_profit]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.depreciation]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.other_noncash]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.capital_spending]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.additional_capex]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.working_capital_increase]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.debt]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.cash]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.other_claims]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.fcff_cash_flow]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.net_debt]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.receivables]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.inventory]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.payables]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.previous_receivables]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2024-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.previous_inventory]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2024-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.previous_payables]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2024-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[sources.other_working_capital_change]
+status = "reviewed"
+as_of = "2025-12-31"
+period_end = "2025-12-31"
+note = "Synthetic example: invented figures for offline demonstration."
+
+[benchmark]
+
+[reports]

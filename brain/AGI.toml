@@ -1,0 +1,58 @@
+# COMPANY BRAIN — edit the numbers below and save.
+# Missing value = "". Rates are decimals: 0.10 means 10%.
+# Money totals are actual PHP; shares are actual share counts.
+# Financials are reported data. Models contain editable assumptions.
+
+[company]
+ticker = "AGI"
+name = "Alliance Global Group, Inc."
+industry = "Holding Firms"
+archetype = "CONGLOMERATE"
+currency = "PHP"
+pse_edge_url = "https://edge.pse.com.ph/companyInformation/form.do?cmpy_id=212"
+rationale = "Saved company classification; review method suitability."
+notes = "Public blank template. Add your own reviewed data."
+
+[financials]
+price = ""
+shares = ""
+eps = ""
+bvps = ""
+dividend = ""
+roe = ""
+payout = ""
+fcff_cash_flow = ""
+fcfe_cash_flow = ""
+net_debt = ""
+asset_value = ""
+liabilities = ""
+
+# Source dates and notes — update these when changing a reported figure.
+
+[sources.price]
+
+[sources.shares]
+
+[sources.eps]
+
+[sources.bvps]
+
+[sources.dividend]
+
+[sources.roe]
+
+[sources.payout]
+
+[sources.fcff_cash_flow]
+
+[sources.fcfe_cash_flow]
+
+[sources.net_debt]
+
+[sources.asset_value]
+
+[sources.liabilities]
+
+[benchmark]
+
+[reports]
