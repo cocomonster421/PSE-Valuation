@@ -1,0 +1,43 @@
+{
+  "title": "TEL: dividend sustainability and valuation discipline",
+  "ticker": "TEL",
+  "analysis_date": "2026-10-22",
+  "currency": "PHP",
+  "price": {
+    "value": 1190,
+    "as_of": "2026-10-22T14:50:00+08:00",
+    "kind": "Last traded snapshot, not a closing price",
+    "source_url": "https://edge.pse.com.ph/companyPage/stockData.do?cmpy_id=6&security_id=134"
+  },
+  "reported": {
+    "fy2025_eps": 138.63,
+    "h1_2026_eps": 75.99,
+    "h1_2025_eps": 80.73,
+    "eps_source_url": "https://edge.pse.com.ph/companyPage/financial_reports_view.do?cmpy_id=6",
+    "fy2025_dividend": 94,
+    "april_2026_dividend": 46,
+    "september_2026_dividend": 46,
+    "fy2025_source_url": "https://www.sec.gov/Archives/edgar/data/78150/000119312526073891/phi-ex99_1.htm",
+    "h1_2026_source_url": "https://www.sec.gov/Archives/edgar/data/78150/000119312526348006/phi-ex99_1.htm",
+    "dividend_source_url": "https://edge.pse.com.ph/companyPage/dividends_and_rights_form.do?cmpy_id=6"
+  },
+  "assumptions": {
+    "discount_rate": 0.12,
+    "terminal_growth": 0.01,
+    "discount_rate_basis": "Chosen nominal PHP equity-return hurdle, not a measured CAPM estimate or WACC. Stress tested from 10% to 14% given leverage and dividend risk.",
+    "growth_basis": "Conservative 1% perpetual dividend growth scenario given low service-revenue growth and a lower latest interim dividend. Not company guidance.",
+    "dividend_basis": "Last twelve months of common dividends paid: 46 in April 2026 plus 46 in September 2026. Future maintenance is an assumption, not a declared full-year 2026 payout."
+  },
+  "sensitivity": {
+    "discount_rates": [0.10, 0.11, 0.12, 0.13, 0.14],
+    "growth_rates": [0, 0.01, 0.02]
+  },
+  "expected": {
+    "ttm_eps": 133.89,
+    "base_dividend": 92,
+    "fair_value": 844.7272727272727,
+    "minimum_sensitivity_value": 657.1428571428571,
+    "maximum_sensitivity_value": 1173
+  },
+  "scope": "Dated public-source research illustration. Discrete cited facts and original calculations only; no copied reports. No exhaustive disclosure review or verified CAPM estimate. Reassess before using as an investment view."
+}

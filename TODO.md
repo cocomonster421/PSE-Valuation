@@ -27,6 +27,6 @@ A clean virtual environment and extracted archive can be checked on this laptop.
 - Readiness/source metadata: tests/test_review.py.
 - Guided DCF and saved helper trail: scripts/browser_check.py, synthetic DEMO verifies PHP 60 P/E and PHP 48 DCF.
 
-- Isolated Windows verification: clean Python 3.14 environment, four pinned parser dependencies, extracted public archive, 41 tests, health/UI/company reads and occupied-port recovery all passed.
+- Isolated Windows verification: clean Python 3.14 environment, four pinned parser dependencies, extracted public archive, 45 tests, health/UI/company reads and occupied-port recovery all passed.
 - Public archive: MIT, blank real-company templates, synthetic DEMO, no private research histories or report PDFs.
 - JavaScript syntax and offline Edge workflow passed; no browser page errors or external requests.

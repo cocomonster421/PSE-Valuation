@@ -10,7 +10,7 @@ sys.path.insert(0,str(ROOT))
 from backend.brain import decode, encode
 from backend.demo import demo_stock
 from backend.catalog import initial_policy
-DIRECTORIES = {"backend", "frontend", "brain", "policies", "tests", "scripts", "docs", "examples"}
+DIRECTORIES = {"backend", "frontend", "brain", "policies", "tests", "scripts", "docs", "examples", ".github"}
 ROOT_FILES = {"README.md", "requirements.txt", "requirements-lock.txt", "run.py", "Launch Workbench.cmd", "Setup Report Tools.cmd", ".gitignore", "IMPLEMENTATION_STATUS.md", "TODO.md", "LICENSE"}
 
 
@@ -28,7 +28,7 @@ def main():
             continue
         if relative.as_posix()=="brain/DEMO.toml":
             continue  # Always generate the canonical synthetic example once.
-        if relative.parts[:2]==("docs","screenshots") and path.name!="portfolio-demo.png":
+        if relative.parts[:2]==("docs","screenshots") and path.name not in {"portfolio-demo.png", "tel-overview.png", "tel-sensitivity.png", "tel-sources.png"}:
             continue
         if path.is_symlink() or path.suffix in {".pyc", ".db", ".pdf", ".log", ".env"}:
             raise ValueError(f"Unexpected file in release source: {relative}")

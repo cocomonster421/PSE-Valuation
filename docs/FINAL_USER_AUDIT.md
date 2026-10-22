@@ -25,7 +25,7 @@ assumptions still require review.
 
 ## Results
 
-- 41 automated tests passed, including release rebuild and cancelled-response regressions.
+- 45 automated tests passed, including release rebuild and cancelled-response regressions.
 - Public-checkout and extracted-package browser workflows passed.
 - Independent package startup, health checks, example replay and occupied-port handling passed.
 - Internal Markdown links resolve; current source contains no embedded credentials found by the release scan.

@@ -3,11 +3,20 @@
 The public repository contains 61 blank real-company templates and one synthetic
 DEMO. Tests do not require private financial data.
 
+## Continuous integration
+
+[![Tests](https://github.com/cocomonster421/PSE-Valuation/actions/workflows/tests.yml/badge.svg)](https://github.com/cocomonster421/PSE-Valuation/actions/workflows/tests.yml)
+
+GitHub Actions runs the suite on Linux and Windows with Python 3.11 and 3.14 on
+pushes and pull requests. The badge links to the actual run status. Browser checks
+remain a separate local Windows check; they are not included in this badge.
+
 ## Automated checks
 
 | Check | Coverage |
 | --- | --- |
 | `python -m unittest discover -s tests -v` | All 14 valuation methods, invalid inputs, source conflicts, backups, report parsing, readiness checks and public-package rebuilding |
+| `python scripts/replay_tel_case.py` | Sourced TEL dividend case, EPS roll-forward and 15-cell sensitivity grid |
 | `python scripts/replay_example.py` | Independent replay of the synthetic dividend example and sensitivity cases |
 | `python scripts/browser_check.py` | DDM/DCF, rate and cash-flow helpers, company/policy edits, imports, sensitivity, save/load/export and mobile width |
 | `python scripts/first_user_review.py` | Fresh-package onboarding, missing-data safeguards, advanced-method reopening and DCF evidence preservation |
@@ -45,3 +54,10 @@ extraction is assisted and layout-dependent; see [report checks](REAL_REPORT_CHE
 The app has no trading, scheduled market refresh or news scoring. Prices are saved
 references. Source checks identify missing, mixed-period and stale inputs; they do
 not certify financial accuracy. Model suitability and assumptions require review.
+
+## Additional DCF checks
+
+`tests/test_dcf_properties.py` compares nonzero-growth DCF against a closed-form
+growing annuity, checks share/debt scaling, rejects invalid growth/rates/shares and
+verifies warnings for nonpositive modeled equity. `tests/test_tel_case.py` replays
+the published research case and checks sensitivity direction.

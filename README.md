@@ -1,9 +1,74 @@
 # PSE Valuation
 
-An offline Philippine stock valuation workspace that uses fundamental analysis to
-estimate fair value, with editable assumptions and reproducible calculations.
+[![Tests](https://github.com/cocomonster421/PSE-Valuation/actions/workflows/tests.yml/badge.svg)](https://github.com/cocomonster421/PSE-Valuation/actions/workflows/tests.yml)
 
-![Synthetic offline example](docs/screenshots/portfolio-demo.png)
+**An offline Philippine stock valuation workspace that turns sourced financial
+figures and explicit assumptions into explainable fair-value estimates.**
+
+**Problem:** a valuation is difficult to defend when its financial periods, source
+figures and assumptions are mixed together or lost between spreadsheet versions.
+
+**Solution:** select a stock and model, inspect the sources, change assumptions,
+compare valuations, and save the inputs behind the result. Calculations run locally.
+
+**Project ownership:** [Manco / cocomonster421](https://github.com/cocomonster421).
+The project covers valuation-workflow requirements, model selection, a Python
+calculation backend, a JavaScript interface, report-import review and regression testing.
+
+[Read the TEL research case](docs/TEL_CASE_STUDY.md) ·
+[See test coverage](docs/VERIFICATION.md) ·
+[Run locally](#getting-started)
+
+## See it working
+
+Actual application screenshot using the dated TEL case inputs. The price is a saved
+22 October 2026 snapshot; the valuation is conditional on the selected assumptions.
+
+![TEL dividend valuation: inputs, source dates and fair value](docs/screenshots/tel-overview.png)
+
+| Vary the required return | Inspect financial sources |
+| --- | --- |
+| ![TEL sensitivity analysis](docs/screenshots/tel-sensitivity.png) | ![Source notes beside editable inputs](docs/screenshots/tel-sources.png) |
+
+## One investment question: does TEL's dividend justify its price?
+
+The [TEL case study](docs/TEL_CASE_STUDY.md) distinguishes FY2025's earnings-year
+dividend from the latest twelve-month payments, rolls reported EPS forward, and
+explains why a dividend model is used rather than an unsupported enterprise DCF.
+
+| Dated reference price | Base-case dividend value | Analytical conclusion |
+| --- | --- | --- |
+| PHP 1,190, 22 Oct 2026 at 14:50 | PHP 844.73 at a 12% required return and 1% growth | The selected assumptions do not establish a margin of safety. A lower required return or stronger sustainable payout could change the view. |
+
+The report includes primary-source links, a 15-cell sensitivity table, risks and
+reverse calculations showing what the reference price implies. Its data is frozen
+in [a separate case file](examples/tel_case.json); real-company working templates
+remain blank. No reports are redistributed.
+
+Reproduce the case with Python alone:
+
+```sh
+python scripts/replay_tel_case.py
+```
+
+## Reliability you can inspect
+
+The test badge links to actual GitHub Actions results. The workflow runs on Linux
+and Windows with Python 3.11 and 3.14; it tests formulas, validation and APIs, replays
+the TEL case, and starts an extracted release independently.
+
+- **DCF correctness:** a closed-form growing-annuity check, a zero-growth perpetuity,
+  share-count scaling and the enterprise-to-equity debt bridge.
+- **Invalid inputs:** missing/non-finite values, zero shares, inconsistent growth and
+  discount rates, and invalid comparison inputs are rejected.
+- **Edge cases:** FCFE avoids subtracting debt twice; nonpositive modeled equity is
+  flagged; source revisions prevent conflicting saves.
+- **Reproducibility:** stored inputs reproduce the result; the TEL case's sensitivity
+  table is checked automatically. Browser tests separately cover editing, imports,
+  saved analyses and mobile layout.
+
+Tests validate calculations and software behavior, not source accuracy or investment
+performance. See [verification scope and commands](docs/VERIFICATION.md).
 
 ## Getting started
 

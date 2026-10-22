@@ -151,7 +151,10 @@ function fieldDefinition(method,key) {
   const field={...policyRecord.data.fields[key]};
   if(key==="multiple" && method==="pe") field.help="Choose a comparison P/E using dated observations from similar businesses or this company's own history. Compare the same earnings basis (for example, trailing annual EPS), profitability, growth and debt; explain exclusions and your selected ratio in Notes / sources. Current price ÷ EPS gives current P/E, not an independent fair-value target. Practice example only: EPS 5 × an illustrative comparison P/E of 12 = 60. The 12 is not an industry average. Leave this blank until you have a basis, or use DEMO for practice.";
   if(key==="multiple") field.label=method==="pe"?"Comparison P/E":method==="pb"?"Comparison P/B":"Comparison price / cash earnings";
-  if(key==="terminal_growth" && method==="ddm") field.label="Long-run dividend growth";
+  if(key==="terminal_growth" && method==="ddm") {
+    field.label="Long-run dividend growth";
+    field.help="Assumed annual dividend growth starting with the next year's dividend and continuing indefinitely. This constant-growth DDM has no separate five-year forecast. Keep growth below Required yearly return and justify whether the payout can sustain it.";
+  }
   if(key==="cash_flow" && method==="dcf_fcfe") {
     field.label="Annual cash available to shareholders";
     field.help="Shareholder cash (FCFE) = business cash (FCFF) − interest expense × (1 − tax rate) + new borrowing − debt repayments. Alternatively use net income + non-cash charges − capital investment − increase in operating working capital + net borrowing. Use cash after financing, discount at shareholders' required return, and do not subtract debt again.";
