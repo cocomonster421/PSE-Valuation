@@ -26,6 +26,8 @@ def main():
             continue
         if relative.parts[:2]==("brain","research"):
             continue
+        if relative.as_posix()=="brain/DEMO.toml":
+            continue  # Always generate the canonical synthetic example once.
         if relative.parts[:2]==("docs","screenshots") and path.name!="portfolio-demo.png":
             continue
         if path.is_symlink() or path.suffix in {".pyc", ".db", ".pdf", ".log", ".env"}:
@@ -49,6 +51,8 @@ def main():
         package.writestr("brain/DEMO.toml",encode(demo_stock()))
         package.writestr("scenarios/.gitkeep", "")
         for brain in sorted((ROOT / "brain").glob("*.toml")):
+            if brain.stem=="DEMO":
+                continue
             package.writestr(f"reports/{brain.stem}/.gitkeep", "")
         package.writestr("reports/DEMO/.gitkeep","")
     manifest = {"archive": archive.name, "bytes": archive.stat().st_size,

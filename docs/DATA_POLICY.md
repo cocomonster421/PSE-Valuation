@@ -1,64 +1,50 @@
-The public release contains 61 blank company templates plus a synthetic DEMO. The historical figures described below apply only to the private workspace, not the public package. Downloaded report text and research history are excluded from the release.
-
 # Company data and assumptions
 
-The bundled 61 records are a local research collection, not a claim about current
-index membership. The active watcher cache selected during migration was generated
-on October 12, 2026. Each quote retains its own source timestamp; individual report
-publication dates and financial periods may be older. Nine records had no industry
-label and are explicitly marked unclassified for manual review.
+The repository contains 61 blank real-company templates and one synthetic DEMO.
+Company names, source links and profiles are saved metadata, not a guarantee of
+current index membership or method suitability. Unclassified industries require
+manual review. DEMO values are invented and are not investment estimates.
 
-## What is prefilled
+## Company figures
 
-The importer retains available common shares, EPS, common book value per share,
-dividends, ROE, payout and price references. Imported financial metrics remain
-`needs_review`. The reported date may be a publication date rather than the
-effective period of that particular metric; the UI preserves that qualification.
+Use **Edit company data** to record a value, effective date, financial period, source
+URL, review status and notes. Populated figures require a date and a source or note.
+Changes made through the app are backed up under `runtime/revisions/`.
 
-Compact historical extracted facts retain period, currency, unit, scope, candidate
-status, source URL and document identifier. They are not automatically used to fill
-DCF inputs. Original reports, extracted report text and the watcher's database are
-not required or distributed with the standalone application.
+Alternatively, edit a company's TOML file as described in the [file guide](../brain/README.md).
+Malformed files are flagged rather than replaced with defaults. Publication dates
+and financial period ends are distinct. Report imports remain subject to review;
+unsupported values are not inferred.
 
-## Updating a company
+## Assumptions
 
-Use **Edit company data** to change a value, date, source URL, review status and
-notes. Financial period end is a separate optional field. A source link or an
-explanatory note is required for a populated figure. Changes are saved as actual
-PHP values, decimal rates and per-share values according to each field definition.
-Previous complete records are preserved under `runtime/revisions/`.
+Policy defaults such as 3% forecast growth, 2% terminal growth and 15% asset-value
+discount are illustrative. They are not company forecasts or market averages.
+Company-specific assumptions take priority over global defaults. Missing company
+facts and required discount rates remain blank unless explicitly supplied.
 
-You may edit `brain/TEL.toml` in a text editor instead. Keep the schema and
-numeric values valid. If a stock file is malformed, that stock is labeled as needing
-repair while the others remain available. Fix the file or restore a backup; the app
-does not silently replace invalid user data with defaults.
+The discount-rate helper can use a saved benchmark with its date. Its fallback
+risk-free rate, beta, equity premium, debt cost, tax rate and capital weights are
+illustrative until verified. Applying a rate records the components in analysis notes.
 
-## Modeling assumptions
+FCFF and FCFE use separate baseline fields. Review taxes, financing, ownership scope,
+working capital and capital investment before calculating either measure. Do not
+assume operating cash flow minus capital expenditure is automatically FCFF.
 
-The default 3% explicit forecast growth, 2% terminal growth and 15% NAV discount are
-illustrative starting values, not verified company forecasts. Missing discount
-rates and unsupported financial inputs stay blank. Defaults are editable through
-**Edit method policies** or `policies/catalog.json`.
+## Saved analyses
 
-The beta calculator starts from the company's saved Philippine government-rate
-benchmark when one exists, showing its date. Beta, equity premium, debt cost, tax
-and capital weights initially contain illustrative values. A computed rate is only
-applied when you select the button; its components are appended to the thesis notes.
+Saved analyses include inputs, engine version, results, company/policy snapshots,
+source-readiness checks and applicable helper derivations. Company or policy changes
+are checked before saving. Loading an analysis requires review against the current
+baseline; retained helper records describe the original calculation and its sources.
+Manual changes to a derived output remove the old evidence for that output.
 
-FCFF and FCFE have separate baseline fields. Do not treat operating cash flow minus
-capital expenditure as either measure without reviewing financing, taxes, claims,
-scope and adjustments. The interface keeps their definitions visible.
+Private reports, scenarios and revision backups are ignored by Git. Company TOML
+files are tracked: use the release builder to strip personal figures before sharing.
 
-## Traceability
+## Model limits
 
-A calculation preserves the input values and engine version. Saving also preserves
-the company's complete compact record and the method policy. Changed source revisions
-are rejected at save time. Export includes the inputs and snapshots available when
-the analysis was created. Loading a saved analysis places its inputs into a new
-working form; it requires confirmation against the current baseline before reuse.
-
-The five-year DCF assumes constant explicit-period growth. DDM uses a constant-growth
-perpetuity. NAV/SOTP/RNAV accept reviewed component totals rather than independently
-valuing each subsidiary or property. Embedded value accepts reviewed actuarial
-inputs rather than building an actuarial projection. These limits are deliberate
-and should be explained when presenting an analysis.
+DCF assumes five years of constant forecast growth. DDM uses a constant-growth
+perpetuity. Asset models accept reviewed component totals. Embedded value accepts
+actuarial estimates rather than generating them. Readiness checks flag missing,
+stale and mixed-period data but do not verify its accuracy.

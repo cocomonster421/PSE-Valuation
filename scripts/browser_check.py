@@ -20,13 +20,20 @@ from backend.demo import demo_stock
 
 
 def main():
-    screenshots = ROOT / "docs/screenshots"
+    screenshots = ROOT / "runtime/browser-check"
     screenshots.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as temporary:
         test_root = Path(temporary)
         for folder in ["frontend", "brain", "policies"]:
             shutil.copytree(ROOT / folder, test_root / folder)
         (test_root / "scenarios").mkdir()
+        # Use invented figures so a clean public checkout needs no private research.
+        tel = server.read(test_root / "brain/TEL.toml")
+        tel["fields"] = demo_stock()["fields"]
+        tel["models"] = {"ddm":{"discount_rate":.12,"terminal_growth":.02},
+                         "dcf_fcff":{"growth":.03}}
+        server.write(test_root / "brain/TEL.toml", tel)
+        stock_count = len(list((test_root / "brain").glob("*.toml")))
         server.ROOT = test_root
         http = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
         worker = threading.Thread(target=http.serve_forever, daemon=True)
@@ -172,7 +179,7 @@ def main():
                 page.locator("#import-dialog").wait_for(state="hidden")
                 assert server.read(test_root / "brain/BDO.toml")["fields"]["debt"]["value"] == 50000
                 page.locator("#all-stocks").click()
-                expect(page.locator("#search-results button")).to_have_count(61)
+                expect(page.locator("#search-results button")).to_have_count(stock_count)
                 page.locator("#stock-search").fill("AREIT")
                 page.locator("#search-results button").filter(has_text="AREIT ·").click()
                 expect(page.locator("#method")).to_have_value("nav")

@@ -11,12 +11,12 @@ Each file is organized in this order:
 3. **models** — editable assumptions for each valuation method.
 4. **sources** — dates, links and notes behind the financial figures.
 
-For example:
+Synthetic example:
 
 ```toml
 [financials]
-dividend = 92.0
-shares = 216055775
+dividend = 2.0
+shares = 1000000
 fcff_cash_flow = ""
 
 [models.ddm]
@@ -36,8 +36,8 @@ Each company has its own assumptions. These take priority over global policy def
 The five normal choices are DCF, dividends, earnings, book value, and assets.
 **Advanced methods** exposes specialized variants when needed.
 
-`research/` contains the longer extracted financial history. You can leave it alone;
-it is evidence for review, not another set of calculation inputs.
+The public templates have blank financial data. DEMO contains invented values for
+practice. Downloaded report text and private research histories are not distributed.
 
 The PSE EDGE link beside the ticker opens the company information page when its ID
 is known. That page links to financial reports, disclosures and dividends. Records

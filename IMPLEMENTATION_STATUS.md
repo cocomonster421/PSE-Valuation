@@ -1,3 +1,4 @@
-# Verification status
+# Implementation status
 
-The offline workbench is implemented. See [the requirement audit and verification results](docs/VERIFICATION.md) for tested behavior and limitations.
+The local valuation workspace is implemented. See [verification](docs/VERIFICATION.md)
+for test commands, supported workflows and limitations, and the [release audit](docs/FINAL_USER_AUDIT.md).
