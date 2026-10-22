@@ -39,5 +39,12 @@
     "minimum_sensitivity_value": 657.1428571428571,
     "maximum_sensitivity_value": 1173
   },
+  "source_review": {
+    "status": "Provisional earnings bridge; no calibrated price target",
+    "review_path": "docs/TEL_MODEL_REVIEW.md",
+    "qualification": "Original 2025 audit opinions were withdrawn; planned financial-statement revisions require reconciliation. Historical dividend arithmetic is unchanged.",
+    "disclosure_url": "https://www.sec.gov/Archives/edgar/data/78150/000119312526347926/phi-ex99_1.htm",
+    "clarification_url": "https://www.sec.gov/Archives/edgar/data/78150/000119312526401539/phi-ex99_1.htm"
+  },
   "scope": "Dated public-source research illustration. Discrete cited facts and original calculations only; no copied reports. No exhaustive disclosure review or verified CAPM estimate. Reassess before using as an investment view."
 }

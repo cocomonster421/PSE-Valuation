@@ -36,9 +36,9 @@ The [TEL case study](docs/TEL_CASE_STUDY.md) distinguishes FY2025's earnings-yea
 dividend from the latest twelve-month payments, rolls reported EPS forward, and
 explains why a dividend model is used rather than an unsupported enterprise DCF.
 
-| Dated reference price | Base-case dividend value | Analytical conclusion |
+| Dated reference price | Illustrative dividend scenario | Analytical conclusion |
 | --- | --- | --- |
-| PHP 1,190, 22 Oct 2026 at 14:50 | PHP 844.73 at a 12% required return and 1% growth | The selected assumptions do not establish a margin of safety. A lower required return or stronger sustainable payout could change the view. |
+| PHP 1,190, 22 Oct 2026 at 14:50 | PHP 844.73 at a 12% required return and 1% growth | A conditional scenario, not an established TEL price target. Required return and dividend growth still need independent calibration. |
 
 The report includes primary-source links, a 15-cell sensitivity table, risks and
 reverse calculations showing what the reference price implies. Its data is frozen
@@ -59,6 +59,8 @@ the TEL case, and starts an extracted release independently.
 
 - **DCF correctness:** a closed-form growing-annuity check, a zero-growth perpetuity,
   share-count scaling and the enterprise-to-equity debt bridge.
+- **Dividend correctness:** independently discounted annual payments and agreement
+  with FCFE when all shareholder cash is distributed under identical assumptions.
 - **Invalid inputs:** missing/non-finite values, zero shares, inconsistent growth and
   discount rates, and invalid comparison inputs are rejected.
 - **Edge cases:** FCFE avoids subtracting debt twice; nonpositive modeled equity is

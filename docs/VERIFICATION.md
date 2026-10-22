@@ -61,3 +61,8 @@ not certify financial accuracy. Model suitability and assumptions require review
 growing annuity, checks share/debt scaling, rejects invalid growth/rates/shares and
 verifies warnings for nonpositive modeled equity. `tests/test_tel_case.py` replays
 the published research case and checks sensitivity direction.
+
+`tests/test_dividend_properties.py` checks DDM against 1,000 individually discounted
+payments, equivalence to FCFE under full distribution and identical growth/risk,
+and independence of model value from the reference market price. The TEL replay
+verifies arithmetic only; its source-review qualification remains separate.

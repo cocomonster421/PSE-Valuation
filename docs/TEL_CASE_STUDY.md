@@ -2,14 +2,15 @@
 
 **Research date: 22 October 2026 · PLDT Inc. · PHP per common share**
 
-| Reference price | DDM base case | Difference vs price | Tested range |
+| Reference price | Illustrative DDM scenario | Difference vs price | Tested range |
 | --- | --- | --- | --- |
 | 1,190.00 | 844.73 | −29.0% | 657.14–1,173.00 |
 
-**Conclusion:** this dividend-based screen does not establish a margin of safety at
-the reference price. A 7.73% trailing yield is not enough by itself: the base case
-requires 12% annual equity return and assumes only 1% perpetual dividend growth.
-The conclusion is conditional on those choices, not a claim that the market is wrong.
+**Conclusion:** PHP 844.73 is the result of a selected dividend scenario, not an
+independently established fair-value target for TEL. The 12% required return and
+1% perpetual growth rate have not been calibrated to a company-specific cost of
+equity and forecast. This calculation alone cannot establish that TEL is overvalued.
+See the [formula and assumption review](TEL_MODEL_REVIEW.md).
 
 ![TEL valuation in the application](screenshots/tel-overview.png)
 
@@ -29,6 +30,12 @@ assumes comparable share bases and no unadjusted restatement. Reconcile those if
 subsequent filing changes the comparatives. Current P/E = 1,190 / 133.89 = **8.89×**.
 This is descriptive, not a justified target multiple.
 
+**Reporting qualification:** PLDT disclosed planned revisions and withdrawn original
+2025 audit opinions on 13 August 2026, reiterated in its September clarification.
+The EPS bridge is provisional pending reconciliation; it should not support a
+price target on its own. The [source review](TEL_MODEL_REVIEW.md#financial-reporting-status)
+links the disclosures and explains their scope.
+
 Trailing dividend / TTM reported EPS = 92 / 133.89 = **68.7%**. The periods differ:
 dividends are payments through September; earnings end in June. This is a coverage
 screen, not a matched-period payout ratio. PLDT's stated 60% FY2025 payout uses
@@ -45,8 +52,9 @@ positive free cash flow; that label alone does not supply a normalized FCFF inpu
 [PLDT H1 2026 results](https://www.sec.gov/Archives/edgar/data/78150/000119312526348006/phi-ex99_1.htm)
 
 DDM fits a question about cash returned to common shareholders. It is deliberately
-narrow: retained cash, subsidiaries and growth investments may create value not
-captured by a conservative dividend path. No enterprise DCF is presented because
+narrow: retained cash and growth investments must ultimately be reflected in future
+distributions to contribute to this model's value. Do not add subsidiaries or
+retained earnings separately without checking for double counting. No enterprise DCF is presented because
 this case does not reconcile operating cash, leases, maintenance/growth investment
 and financing into a defensible annual FCFF base. Avoiding an unsupported model is
 part of the analytical decision.

@@ -30,7 +30,8 @@ def replay():
             assert math.isclose(value, dividend * (1 + growth) / (rate - growth), abs_tol=1e-8)
             values.append(round(value, 2))
         rows.append({'required_return': rate, 'values': values})
-    return {'verified': True, 'ticker': 'TEL', 'price_as_of': case['price']['as_of'],
+    return {'verified': True, 'verification_scope': 'Arithmetic only; not source accuracy or a calibrated price target',
+            'source_review': case['source_review'], 'ticker': 'TEL', 'price_as_of': case['price']['as_of'],
             'ttm_eps': round(eps, 2), 'current_pe': price / eps,
             'trailing_dividend_yield': dividend / price, 'payout_to_reported_ttm_eps': dividend / eps,
             'result': result, 'sensitivity_growth_rates': case['sensitivity']['growth_rates'],
