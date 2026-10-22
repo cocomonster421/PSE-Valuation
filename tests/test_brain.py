@@ -37,11 +37,13 @@ class BrainTests(unittest.TestCase):
         data=read(self.path)
         data['reports']={'review_status':'unresolved','reviewed_on':'2026-10-22','review_note':'Pending reconciliation'}
         data['models']['ddm'].update(evidence_status='documented',as_of='2026-10-22')
+        data['fields']['dividend']['period_type']='ttm'
         Handler.validate_stock(data,'TEL')
         write(self.path,data)
         restored=read(self.path)
         self.assertEqual(restored['reports'],data['reports'])
         self.assertEqual(restored['models'],data['models'])
+        self.assertEqual(restored['fields']['dividend']['period_type'],'ttm')
         data['reports']['review_status']='automatically_verified'
         with self.assertRaises(ValueError):
             Handler.validate_stock(data,'TEL')

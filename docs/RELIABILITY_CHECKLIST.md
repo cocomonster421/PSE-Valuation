@@ -15,11 +15,14 @@
 - [x] Applying financial imports invalidates an earlier reporting review and records
   affected fields and time. Existing unresolved issues and prior review notes persist.
   Previewing a report or importing only a price does not reset financial review.
+- [x] Record annual, trailing-year, quarter, YTD or point-in-time periods explicitly.
+  Flag nonannual or unknown flow inputs, including cash-flow helper sources. Generic
+  imports no longer claim annual coverage from an end date alone.
 
 ## Remaining
 
-- [ ] Stronger period-duration checks: annual versus quarter/YTD/TTM, dividend
-  payment periods and comparable revised earnings series.
+- [ ] Reconcile individual dividend payment periods and revised earnings/share bases
+  used in trailing-year calculations; period labels alone do not prove comparability.
 - [ ] Structured FCFF/FCFE reconciliation, including lease, financing and ownership
   consistency; helper calculations currently still need human review.
 - [ ] Scan downloaded disclosures for possible restatement/audit issues and present

@@ -13,11 +13,19 @@ class ImporterTests(unittest.TestCase):
         self.assertAlmostEqual(rows["eps"]["value"],5.07)
         self.assertAlmostEqual(rows["bvps"]["value"],59.47)
         self.assertEqual(rows["eps"]["period_end"],"2026-06-30")
+        self.assertEqual(rows['eps']['period_type'],'ttm')
+        self.assertEqual(rows['bvps']['period_type'],'point_in_time')
 
     def test_nonmatching_periods_do_not_create_ttm(self):
         html=HTML.replace("Jun 30, 2026","Jun 30, 2027")
         rows={r["key"]:r for r in edge_financials(html,"official")}
         self.assertAlmostEqual(rows["eps"]["value"],4.77)
+        self.assertEqual(rows['eps']['period_type'],'annual')
+
+    def test_non_quarter_end_does_not_create_ttm(self):
+        rows={r['key']:r for r in edge_financials(HTML.replace('Jun 30, 2026','Jun 15, 2026'),'official')}
+        self.assertEqual(rows['eps']['period_type'],'annual')
+        self.assertAlmostEqual(rows['eps']['value'],4.77)
 
     def test_foreign_currency_summary_is_rejected(self):
         with self.assertRaises(ValueError):edge_financials(HTML.replace("PHP","USD"),"official")
@@ -31,6 +39,8 @@ class ImporterTests(unittest.TestCase):
             self.assertEqual(rows[0]["value"],100000000)
             self.assertEqual(len(digest),64)
             self.assertTrue(warnings)
+            self.assertEqual(rows[0]['period_type'],'unknown')
+            self.assertNotIn('User-confirmed annual',rows[0]['period_basis'])
 
     def test_repeated_pdf_style_rows_are_not_guessed(self):
         with tempfile.TemporaryDirectory() as tmp:

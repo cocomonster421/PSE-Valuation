@@ -111,6 +111,7 @@ def main():
                 page.locator("#baseline-shares").fill("216000000")
                 page.locator("#baseline-date-shares").fill("2026-10-21")
                 page.locator("#baseline-note-shares").fill("Browser QA edit; temporary data only")
+                page.locator('#baseline-duration-shares').select_option('point_in_time')
                 page.locator("#model-ddm-discount_rate").fill("13")
                 page.locator('[data-model="ddm"] [data-model-note]').fill('Temporary research basis: return and growth scenarios explained')
                 page.locator('[data-model="ddm"] [data-model-date]').fill('2026-10-22')
@@ -129,6 +130,7 @@ def main():
                 page.locator("#search-results button").filter(has_text="TEL ·").click()
                 page.locator("#edit-stock").click()
                 assert page.locator("#baseline-shares").input_value() == "216000000"
+                expect(page.locator('#baseline-duration-shares')).to_have_value('point_in_time')
                 expect(page.locator('[data-model="ddm"] [data-model-note]')).to_have_value('Temporary research basis: return and growth scenarios explained')
                 expect(page.locator('[data-model="ddm"] [data-model-evidence]')).to_have_value('documented')
                 expect(page.locator('#reporting-status')).to_have_value('reconciled')

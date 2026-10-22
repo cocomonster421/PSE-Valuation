@@ -5,6 +5,25 @@ from backend.catalog import initial_policy
 
 
 class ReviewTests(unittest.TestCase):
+    def test_annual_valuation_rejects_partial_or_unknown_period_as_reviewed(self):
+        stock={'fields':{'eps':{'value':5,'status':'reviewed','period_end':'2026-06-30','note':'Reported EPS'}},
+               'reports':{'review_status':'reviewed','review_note':'Checked sources','reviewed_on':'2026-10-22'}}
+        for period in ('quarter','ytd','point_in_time','unknown','annual','ttm'):
+            with self.subTest(period=period):
+                stock['fields']['eps']['period_type']=period
+                checked=review_inputs(stock,initial_policy(),'pe',dict(eps=5,multiple=10),date(2026,10,22))
+                self.assertEqual(checked['data_status'],'Reviewed inputs' if period in {'annual','ttm'} else 'Needs review')
+
+    def test_helper_cannot_hide_quarterly_source_or_override(self):
+        source={'value':100,'period_type':'quarter','period_end':'2026-06-30'}
+        derivation={'output_field':'cash_flow','value':70,'inputs':{'operating_profit':100},'sources':{'operating_profit':source}}
+        inputs=dict(cash_flow=70,growth=.03,discount_rate=.12,terminal_growth=.02,shares=10,net_debt=0)
+        checked=review_inputs({'fields':{}},initial_policy(),'dcf_fcff',inputs,derivations=[derivation])
+        self.assertTrue(any('saved period type is quarter' in s for s in checked['issues']))
+        derivation['inputs']['operating_profit']=120
+        checked=review_inputs({'fields':{}},initial_policy(),'dcf_fcff',inputs,derivations=[derivation])
+        self.assertTrue(any('helper input differs' in s for s in checked['issues']))
+
     def test_missing_assumptions_are_not_documented(self):
         checked=review_inputs({'fields':{}},initial_policy(),'ddm',{})
         self.assertEqual(checked['assumption_status'],'Illustrative scenario')

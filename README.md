@@ -144,7 +144,10 @@ Use **Edit company data**, edit `brain/TICKER.toml` directly, or import a report
 
 1. Put a PDF, saved HTML page or text file in `reports/TICKER/`.
 2. Choose the stock and select **Update from reports**.
-3. Select one report. For PDF/text, enter its annual period and unit scale.
+3. Select one report. For PDF/text, enter its period end and unit scale. After
+   importing, use **Edit company data → Period covered** to confirm annual or
+   trailing-12-month coverage for earnings, dividends and cash flows. An end date
+   alone does not establish annual coverage; partial-year inputs stay flagged.
 4. Click **Scan selected report**, compare proposed figures with the source rows,
    and apply only the figures checked.
 

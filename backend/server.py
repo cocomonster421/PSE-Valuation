@@ -349,6 +349,9 @@ class Handler(BaseHTTPRequestHandler):
         for key, field in data["fields"].items():
             if not isinstance(field, dict) or "value" not in field:
                 raise ValueError(f"{key}: expected a field object with value")
+            from backend.review import PERIOD_TYPES
+            if field.get("period_type", "unknown") not in PERIOD_TYPES:
+                raise ValueError(f"{key}: choose a supported period type")
             value = field["value"]
             if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float))):
                 raise ValueError(f"{key}: value must be numeric or null")

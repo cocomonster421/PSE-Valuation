@@ -3,6 +3,20 @@ from datetime import date
 
 ASSUMPTIONS = {"growth", "discount_rate", "terminal_growth", "multiple", "discount",
                "required_yield", "cap_rate", "roe", "payout"}
+ANNUAL_FIELDS = {"eps", "dividend", "cash_flow", "fcff_cash_flow", "fcfe_cash_flow",
+                 "affo_per_share", "noi", "operating_profit", "depreciation",
+                 "capital_spending", "operating_cash_flow", "working_capital_increase",
+                 "other_noncash", "other_investment"}
+PERIOD_TYPES = {"unknown", "annual", "ttm", "quarter", "ytd", "point_in_time"}
+
+
+def period_issues(key, source):
+    if key not in ANNUAL_FIELDS:
+        return []
+    kind=source.get("period_type", "unknown")
+    if kind not in {"annual", "ttm"}:
+        return [f"{key}: annual or trailing-12-month input required; saved period type is {kind}. Do not automatically multiply a quarter or YTD figure."]
+    return []
 
 
 def documented(evidence, today):
@@ -48,10 +62,24 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
         if derived:
             kind="Calculated from helper inputs"; evidence=derived
             issues.append(f"{key}: review the helper's inputs and source periods")
+            helper_periods=set()
+            for helper_key, helper_value in derived.get("inputs", {}).items():
+                if helper_key not in ANNUAL_FIELDS or helper_value is None:
+                    continue
+                helper_source=derived.get("sources", {}).get(helper_key, {})
+                if helper_source.get("value") != helper_value:
+                    data_issues.append(f"{helper_key}: helper input differs from its saved source; confirm annual period and basis")
+                else:
+                    data_issues.extend(period_issues(helper_key, helper_source))
+                    if helper_source.get("period_end"):
+                        helper_periods.add(helper_source['period_end'][:10])
+            if len(helper_periods)>1:
+                data_issues.append("Cash-flow helper mixes annual reporting periods: "+", ".join(sorted(helper_periods)))
         elif key in model and model[key]==value:
             kind="Company assumption"; evidence={k:model.get(k) for k in ("as_of","note","evidence_status")}
         elif source.get("value")==value:
             kind="Saved company figure"; evidence=dict(source)
+            data_issues.extend(period_issues(key, source))
             if source.get("status")!="reviewed": issues.append(f"{key}: saved figure needs review")
             period=source.get("period_end")
             if period and key!="price": periods.add(period[:10])

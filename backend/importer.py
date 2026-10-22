@@ -44,22 +44,24 @@ def edge_financials(html, source):
     if not annual["date"] or "PHP" not in annual["unit"].upper():
         raise ValueError("No supported PHP annual financial summary found. Keep the existing data and use a reviewed import.")
     candidates=[]
-    def add(key,value,period,note):
+    def add(key,value,period,note,period_type):
         if value is not None:
-            candidates.append({"key":key,"value":value,"as_of":period,"period_end":period,"source_url":source,"status":"needs_review","note":note})
+            candidates.append({"key":key,"value":value,"as_of":period,"period_end":period,"period_type":period_type,"source_url":source,"status":"needs_review","note":note})
     annual_eps=annual["rows"].get("Earnings/(Loss) Per Share (Basic)",[None])[0]
     q_eps=quarterly["rows"].get("Earnings/(Loss) Per Share (Basic)",[])
     eps=annual_eps
+    eps_type="annual"
     period=annual["date"]
     note="Annual basic EPS from PSE EDGE; per-share values are not scaled with statement totals."
     if annual_eps is not None and quarterly["date"] and "PHP" in quarterly["unit"].upper() and len(q_eps)>=4 and q_eps[2] is not None and q_eps[3] is not None:
         a=datetime.fromisoformat(annual["date"]); q=datetime.fromisoformat(quarterly["date"])
-        if a.month==12 and a.day==31 and q.year==a.year+1 and q.month in {3,6,9}:
+        if a.month==12 and a.day==31 and q.year==a.year+1 and (q.month,q.day) in {(3,31),(6,30),(9,30)}:
             eps=annual_eps+q_eps[2]-q_eps[3];period=quarterly["date"]
+            eps_type="ttm"
             note=f"Trailing-12-month EPS = annual EPS {annual_eps} + current YTD EPS {q_eps[2]} − prior YTD EPS {q_eps[3]}. Review accounting/share-basis comparability."
-    add("eps",eps,period,note)
+    add("eps",eps,period,note,eps_type)
     latest=quarterly if quarterly["date"] and quarterly["date"]>=annual["date"] and "PHP" in quarterly["unit"].upper() else annual
-    add("bvps",latest["rows"].get("Book Value Per Share",[None])[0],latest["date"],"Reported book value per share from PSE EDGE; no monetary-unit scaling applied to per-share values.")
+    add("bvps",latest["rows"].get("Book Value Per Share",[None])[0],latest["date"],"Reported book value per share from PSE EDGE; no monetary-unit scaling applied to per-share values.","point_in_time")
     return candidates
 
 
@@ -163,7 +165,7 @@ def document_candidates(path, period="", scale=1, page_selection=""):
         if len(hits)==1:
             value,line,numbers,page_no,line_no=hits[0]
             candidates.append({"key":key,"value":value*(1 if key=="eps" else scale),"as_of":period,"period_end":period,
-                "source_url":"", "status":"needs_review","note":f"{path.name}: {line[:350]}. First numeric column; verify current annual period, currency, scale and scope. Applied scale: {scale}.","source_file":path.name,"source_hash":digest,"source_page":page_no,"source_line":line_no,"source_row":line,"unit":"PHP/share" if key=="eps" else "PHP","scale":1 if key=="eps" else scale,"period_basis":"User-confirmed annual period; not inferred from PDF"})
+                "source_url":"", "status":"needs_review","note":f"{path.name}: {line[:350]}. First numeric column; verify period duration, currency, scale and scope. Applied scale: {scale}.","source_file":path.name,"source_hash":digest,"source_page":page_no,"source_line":line_no,"source_row":line,"unit":"PHP/share" if key=="eps" else "PHP","scale":1 if key=="eps" else scale,"period_basis":"User-selected end date; duration requires review", "period_type":"point_in_time" if key in {"cash","debt","receivables","inventory","payables"} else "unknown"})
             if key in {"receivables","inventory","payables"} and len(numbers)==2 and not interim and not re.search(r"unaudited",(pages or {1:text})[page_no],re.I):
                 previous=number(numbers[1])
                 if previous is not None:
