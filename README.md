@@ -77,6 +77,10 @@ issues and dated assumption explanations; results distinguish illustrative scena
 from documented assumptions. See the [reliability checklist](docs/RELIABILITY_CHECKLIST.md)
 for implemented checks and remaining limitations.
 
+Each calculation starts a sensitivity check automatically. The editable starting
+range is an illustrative stress, not an industry estimate or confidence interval.
+Results flag when changing the selected input moves value across the reference price.
+
 ## Getting started
 
 Requires **Python 3.11 or newer**. Download and extract the repository, keeping its

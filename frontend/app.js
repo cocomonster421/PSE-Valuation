@@ -205,33 +205,53 @@ function renderResult(value) {
   const exploration = document.createElement("div");
   exploration.innerHTML = '<hr><h3>Sensitivity</h3><label for="sensitivity-field">Assumption to vary</label><select id="sensitivity-field"></select><div class="fields"><div><label for="sensitivity-low">Lower input</label><input id="sensitivity-low" type="number" step="any"></div><div><label for="sensitivity-high">Higher input</label><input id="sensitivity-high" type="number" step="any"></div></div><button type="button" id="sensitivity-run" class="quiet">Compare values</button><div id="sensitivity-results"></div>';
   $("result").append(exploration);
+  let comparisonVersion=0;
+  const rangeNote=document.createElement("p");rangeNote.className="help";
+  rangeNote.textContent="Automatic starting range: ±1 percentage point for rates, ±10% for other inputs (±1 unit if zero). Asset-discount ranges are shortened at the 0% and 100% boundaries. This is an illustrative stress test, not a peer benchmark or confidence interval. Edit the range to reflect your research.";
+  exploration.querySelector('h3').after(rangeNote);
   for (const key of policyRecord.data.methods[value.method].fields) {
     const option = document.createElement("option"); option.value = key;
     const field = fieldDefinition(value.method,key); option.textContent = `${field.label} (${field.unit === "rate" ? "%" : field.unit})`;
     $("sensitivity-field").append(option);
   }
   function resetSensitivity() {
+    comparisonVersion++;
     sensitivity = null; $("sensitivity-results").replaceChildren();
     const key = $("sensitivity-field").value, rate = policyRecord.data.fields[key].unit === "rate";
     const base = lastInputs[key] * (rate ? 100 : 1), delta = rate ? 1 : Math.abs(base) * .1 || 1;
     $("sensitivity-low").value = Number((base - delta).toFixed(8)); $("sensitivity-high").value = Number((base + delta).toFixed(8));
+    if(key==="discount") {
+      $("sensitivity-low").value=Math.max(0,base-delta);
+      $("sensitivity-high").value=base+delta>=100 ? (base+100)/2 : base+delta;
+    }
   }
   $("sensitivity-field").onchange = resetSensitivity;
-  for (const id of ["sensitivity-low", "sensitivity-high"]) $(id).oninput = () => {sensitivity=null;$("sensitivity-results").replaceChildren();};
+  for (const id of ["sensitivity-low", "sensitivity-high"]) $(id).oninput = () => {comparisonVersion++;sensitivity=null;$("sensitivity-results").replaceChildren();};
+  const preferred=["discount_rate","multiple","required_yield","cap_rate","discount","in_force_value"].find(key=>policyRecord.data.methods[value.method].fields.includes(key));
+  if(preferred)$("sensitivity-field").value=preferred;
   resetSensitivity();
   $("sensitivity-run").onclick = async () => {
+    const request=++comparisonVersion, version=inputVersion;
     try {
       const key = $("sensitivity-field").value, divisor = policyRecord.data.fields[key].unit === "rate" ? 100 : 1;
       if ($("sensitivity-low").value === "" || $("sensitivity-high").value === "") throw new Error("Enter both sensitivity inputs.");
       const low = Number($("sensitivity-low").value)/divisor, high = Number($("sensitivity-high").value)/divisor;
       if (low >= high) throw new Error("The lower input must be below the higher input.");
-      const version = inputVersion;
+      $("sensitivity-results").textContent="Checking sensitivity…";
       const compared = await api("/api/compare", {method:value.method, inputs:lastInputs, field:key, low, high, confirmed:true});
-      if (version !== inputVersion) return;
+      if (version !== inputVersion || request !== comparisonVersion || result !== value) return;
       sensitivity = {field:key, low, high};
       $("sensitivity-results").innerHTML = `<table><thead><tr><th>Case</th><th>Input</th><th>Fair value</th></tr></thead><tbody>${compared.cases.map(c=>`<tr><td>${escapeHtml(c.label)}</td><td>${numeric(c.input*divisor)}${divisor===100?"%":""}</td><td>${peso(c.result.fair_value)}</td></tr>`).join("")}</tbody></table>`;
-    } catch(error) {status(error.message);}
+      const summary=document.createElement("p");summary.className="warning";
+      summary.textContent=`Tested values: ${peso(compared.summary.minimum)}–${peso(compared.summary.maximum)}. `+(compared.summary.crosses_reference_price===true ? "The values cross the reference price: the above/below-price conclusion changes within this range." : compared.summary.crosses_reference_price===null ? "Add a reference price to test whether the conclusion changes." : "The values do not cross the reference price in this range; this does not establish robustness outside these inputs.");
+      $("sensitivity-results").prepend(summary);
+    } catch(error) {
+      if(version!==inputVersion || request!==comparisonVersion || result!==value)return;
+      sensitivity=null;
+      $("sensitivity-results").textContent="Sensitivity unavailable: "+error.message+" Adjust the range and compare again. The base calculation is unchanged.";
+    }
   };
+  $("sensitivity-run").click();
 }
 $("stock-search").addEventListener("input", renderSearch);
 $("stock-search").addEventListener("focus", renderSearch);

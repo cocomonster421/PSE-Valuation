@@ -35,6 +35,15 @@ class ValuationTests(unittest.TestCase):
     def test_invalid_sensitivity_case_is_not_fabricated(self):
         with self.assertRaises(ValueError):
             compare("ddm", dict(dividend=10, discount_rate=.12, terminal_growth=.02), "discount_rate", .01, .14)
+
+    def test_sensitivity_identifies_price_crossing_without_claiming_confidence(self):
+        inputs=dict(eps=10,multiple=10,price=100)
+        result=compare('pe',inputs,'multiple',9,11)
+        self.assertEqual(result['summary']['minimum'],90)
+        self.assertEqual(result['summary']['maximum'],110)
+        self.assertTrue(result['summary']['crosses_reference_price'])
+        self.assertFalse(compare('pe',dict(inputs,price=90),'multiple',9,11)['summary']['crosses_reference_price'])
+        self.assertIsNone(compare('pe',dict(eps=10,multiple=10),'multiple',9,11)['summary']['crosses_reference_price'])
     def test_perpetual_cash_flow_enterprise_bridge(self):
         result = calculate("dcf_fcff", dict(cash_flow=100, growth=0, discount_rate=.1,
                            terminal_growth=0, net_debt=200, shares=10, price=50))

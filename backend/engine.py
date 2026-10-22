@@ -18,10 +18,16 @@ def compare(method, inputs, field, low, high):
     if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in (low, high)) or low >= high:
         raise ValueError("Sensitivity inputs must be finite and lower must be below higher")
     base = calculate(method, inputs)
-    return {"field": field, "cases": [
+    cases = [
         {"label": "Lower input", "input": low, "result": calculate(method, {**inputs, field: low})},
         {"label": "Base case", "input": inputs[field], "result": base},
-        {"label": "Higher input", "input": high, "result": calculate(method, {**inputs, field: high})}]}
+        {"label": "Higher input", "input": high, "result": calculate(method, {**inputs, field: high})}]
+    values=[case["result"]["fair_value"] for case in cases]
+    price=inputs.get("price")
+    return {"field": field, "cases": cases, "summary": {
+        "minimum":min(values), "maximum":max(values),
+        "crosses_reference_price":min(values)<price<max(values) if price is not None else None,
+        "note":"One-input stress test, not a confidence interval. Other assumptions remain fixed; range selection requires judgment."}}
 
 
 def calculate(method: str, inputs: dict) -> dict:

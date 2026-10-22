@@ -18,6 +18,10 @@
 - [x] Record annual, trailing-year, quarter, YTD or point-in-time periods explicitly.
   Flag nonannual or unknown flow inputs, including cash-flow helper sources. Generic
   imports no longer claim annual coverage from an end date alone.
+- [x] Automatically run an editable one-input sensitivity test after calculation,
+  describe the illustrative range and flag values crossing the reference price.
+  Invalid stress inputs show an explicit unavailable result, without altering the
+  base calculation. Saved comparisons reproduce their three tested cases.
 
 ## Remaining
 
@@ -27,8 +31,6 @@
   consistency; helper calculations currently still need human review.
 - [ ] Scan downloaded disclosures for possible restatement/audit issues and present
   source passages for review. No claim of automatic audit interpretation.
-- [ ] Automatic sensitivity with explained, editable ranges and conclusion-reversal
-  warnings. The existing manual sensitivity tool remains available.
 - [ ] Batch review of all stocks with per-method issues and exportable results.
 - [ ] Independently reconcile worked examples across company types against filings
   and a separate calculation before relying on their valuation conclusions.
