@@ -81,6 +81,12 @@ Each calculation starts a sensitivity check automatically. The editable starting
 range is an illustrative stress, not an industry estimate or confidence interval.
 Results flag when changing the selected input moves value across the reference price.
 
+Use **Check all stocks** to review the local company files together. Expand a ticker
+to see method-specific missing data, assumption evidence and reporting issues; use
+**Open inputs** to address them. **Export checks** saves a dated JSON snapshot. The
+scan does not fetch data or change your files, and a calculated value is not a
+verified investment target.
+
 ## Getting started
 
 Requires **Python 3.11 or newer**. Download and extract the repository, keeping its

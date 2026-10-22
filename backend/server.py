@@ -20,6 +20,7 @@ from backend.engine import calculate, compare, ENGINE_VERSION
 from backend.brain import decode as read_brain, encode as encode_brain, stock_path, stock_paths
 from backend.importer import document_candidates, refresh_candidates
 from backend.review import review_inputs
+from backend.batch_review import review_company
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = threading.Lock()
@@ -92,6 +93,23 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(403, {"error": "Use the localhost address"})
         path = urlsplit(self.path).path
         try:
+            if path == "/api/review-all":
+                policy=read(ROOT / "policies/catalog.json")
+                self.validate_policy(policy)
+                checked_at=datetime.now(timezone.utc)
+                rows=[]
+                for file in stock_paths(ROOT):
+                    try:
+                        stock=read(file)
+                        self.validate_stock(stock,file.stem)
+                        row=review_company(stock,policy,today=checked_at.astimezone().date())
+                        row["stock_revision"]=revision(stock)
+                    except (ValueError,TypeError,KeyError,AttributeError,OSError) as error:
+                        row={"ticker":file.stem,"name":"File needs repair","error":str(error),"methods":[]}
+                    rows.append(row)
+                return self.send(200,{"checked_at":checked_at.isoformat(),"engine_version":ENGINE_VERSION,
+                    "policy_revision":revision(policy),"companies":rows,
+                    "scope":"Local saved inputs and policy defaults; recommended methods, or all methods when no recommendation exists. No online requests. A calculated value is not a verified target."})
             if path.startswith("/api/reports/"):
                 ticker=safe_id(path.rsplit("/",1)[1])
                 read(stock_path(ROOT,ticker))

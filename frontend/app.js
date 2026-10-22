@@ -9,6 +9,46 @@ let statusTimer;
 let inputVersion = 0;
 let stockRequest = 0;
 let reviewTimer, inputReview=null, derivations=[];
+let batchReview=null;
+$("close-batch-review").onclick=()=>$("batch-review").close();
+$("check-all-stocks").onclick=async()=>{
+  $("batch-review").showModal();
+  $("batch-review-status").textContent="Checking local company files…";
+  $("batch-review-results").replaceChildren();
+  $("export-batch-review").disabled=true;$("check-all-stocks").disabled=true;
+  batchReview=null;
+  try {
+    batchReview=await api('/api/review-all');
+    $("batch-review-status").textContent=`${batchReview.companies.length} companies · ${batchReview.checked_at}. ${batchReview.scope}`;
+    for(const company of batchReview.companies){
+      const detail=document.createElement('details');detail.className='field-help';
+      const problems=company.methods.filter(row=>row.calculation_status!=='Calculated' || row.review.status!=='Ready for input confirmation').length;
+      detail.innerHTML=`<summary>${escapeHtml(company.ticker)} · ${escapeHtml(company.name)} · ${company.error ? 'File needs repair' : `${problems}/${company.methods.length} methods need review`}</summary>`;
+      if(company.error){const message=document.createElement('p');message.textContent=company.error;detail.append(message);}
+      else {
+        const scope=document.createElement('p');scope.className='help';scope.textContent=company.method_scope;detail.append(scope);
+        for(const row of company.methods){
+          const section=document.createElement('div');
+          const issues=[...row.review.missing.map(label=>'Missing: '+label),...row.review.issues,...(row.calculation_warnings || [])];
+          if(row.calculation_error)issues.unshift(row.calculation_error);
+          section.innerHTML=`<h3>${escapeHtml(row.name)}</h3><p>${escapeHtml(row.calculation_status)} · Data: ${escapeHtml(row.review.data_status)} · ${escapeHtml(row.review.assumption_status)}</p><ul>${issues.map(issue=>`<li>${escapeHtml(issue)}</li>`).join('')}</ul>`;
+          const open=document.createElement('button');open.className='quiet';open.type='button';open.textContent='Open inputs';
+          open.onclick=async()=>{try{await chooseStock(company.ticker);if(!basicMethods().includes(row.method))$("advanced-methods").checked=true;renderMethods(row.method);$("batch-review").close();}catch(error){status(error.message);}};
+          section.append(open);detail.append(section);
+        }
+      }
+      $("batch-review-results").append(detail);
+    }
+    $("export-batch-review").disabled=false;
+  } catch(error){$("batch-review-status").textContent="Checks unavailable: "+error.message;}
+  finally{$("check-all-stocks").disabled=false;}
+};
+$("export-batch-review").onclick=()=>{
+  if(!batchReview)return;
+  const blob=new Blob([JSON.stringify(batchReview,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob), link=document.createElement('a');
+  link.href=url;link.download='stock-data-checks.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
 function renderReadiness(){
   if(!inputReview)return;
   const checked=inputReview;

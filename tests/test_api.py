@@ -97,6 +97,22 @@ class LocalAPITests(unittest.TestCase):
     def test_cross_origin_write_rejected(self):
         self.assertEqual(self.request("/api/scenarios", {}, origin=False)[0], 403)
 
+    def test_batch_review_is_read_only_and_survives_broken_company(self):
+        bad=server.ROOT / 'stock_data/BATCHBROKEN.json'
+        bad.write_text('{broken',encoding='utf-8')
+        before=(server.ROOT / 'stock_data/TEL.json').read_bytes()
+        try:
+            code,report=self.request('/api/review-all')
+            self.assertEqual(code,200)
+            rows={row['ticker']:row for row in report['companies']}
+            self.assertIn('error',rows['BATCHBROKEN'])
+            self.assertTrue(rows['TEL']['methods'])
+            self.assertIn('stock_revision',rows['TEL'])
+            self.assertIn('policy_revision',report)
+            self.assertEqual((server.ROOT / 'stock_data/TEL.json').read_bytes(),before)
+        finally:
+            bad.unlink()
+
     def test_mixed_report_folder_requires_individual_selection(self):
         server.write(server.ROOT / "stock_data/TEST.json", {"ticker":"TEST","name":"Fixture","industry":"Test","currency":"PHP","fields":{}})
         folder=server.ROOT / "reports/TEST"

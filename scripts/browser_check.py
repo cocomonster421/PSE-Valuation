@@ -57,6 +57,16 @@ def main():
                 page.on("pageerror", lambda error: errors.append(str(error)))
                 page.goto(base)
                 page.locator("#search-results button").first.wait_for()
+                page.locator('#check-all-stocks').click()
+                expect(page.locator('#batch-review-results > details')).to_have_count(stock_count)
+                page.locator('#batch-review-results > details').filter(has_text='TEL · PLDT').locator('summary').click()
+                expect(page.locator('#batch-review-results')).to_contain_text('Illustrative scenario')
+                with page.expect_download() as download_info:
+                    page.locator('#export-batch-review').click()
+                exported=json.loads(Path(download_info.value.path()).read_text(encoding='utf-8'))
+                assert len(exported['companies'])==stock_count
+                assert exported['policy_revision']
+                page.locator('#close-batch-review').click()
                 page.screenshot(path=str(screenshots / "welcome.png"), full_page=True)
                 page.locator("#stock-search").fill("TEL")
                 page.locator("#search-results button").filter(has_text="TEL ·").click()

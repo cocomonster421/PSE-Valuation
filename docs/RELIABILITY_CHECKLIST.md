@@ -22,6 +22,10 @@
   describe the illustrative range and flag values crossing the reference price.
   Invalid stress inputs show an explicit unavailable result, without altering the
   base calculation. Saved comparisons reproduce their three tested cases.
+- [x] Check all saved companies offline with per-method issues, repair messages for
+  broken files, links to open inputs and a JSON export containing inputs, review
+  evidence, calculation status, timestamps and source/policy revision identifiers.
+  The scan uses recommended methods, or all methods if no recommendation exists.
 
 ## Remaining
 
@@ -31,7 +35,6 @@
   consistency; helper calculations currently still need human review.
 - [ ] Scan downloaded disclosures for possible restatement/audit issues and present
   source passages for review. No claim of automatic audit interpretation.
-- [ ] Batch review of all stocks with per-method issues and exportable results.
 - [ ] Independently reconcile worked examples across company types against filings
   and a separate calculation before relying on their valuation conclusions.
 
