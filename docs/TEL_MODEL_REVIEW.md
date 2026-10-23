@@ -24,7 +24,7 @@ company-wide amount. There is no second share-count division or debt deduction.
 The August [PLDT filing](https://www.sec.gov/Archives/edgar/data/78150/000119312526348006/phi-ex99_1.htm)
 confirms the PHP 46 September common dividend. The
 [FY2025 release](https://www.sec.gov/Archives/edgar/data/78150/000119312526073891/phi-ex99_1.htm)
-provides the final PHP 46 used with it. These are historical payments, not a promise
+provides the final PHP 46 used with it. These are declared payment schedules, not a promise
 of future distributions. Using the FY2025 earnings-year dividend of PHP 94 instead
 would produce PHP 863.09 under the same assumptions, only 2.17% higher.
 
@@ -86,8 +86,8 @@ cash-flow statements and liquidity discussion, reports the following in PHP mill
 
 This difference improved despite lower operating cash generation, because cash
 investment spending fell. It is neither normalized FCFF nor cash distributable to
-common shareholders. The filing also identifies PHP 6,944 million of lease-obligation
-settlements in H1 2026. Interest, financing, leases, other investments and minority
+common shareholders. The filing also identifies PHP 7,835 million of lease-obligation
+settlements in H1 2026, versus PHP 6,944 million in H1 2025. Interest, financing, leases, other investments and minority
 claims must be reconciled before using the difference in a valuation. Do not double
 the half-year difference and label it annual FCFF. Cash purchases also differ from
 the headline PHP 20.7 billion capex measure.
@@ -116,3 +116,27 @@ Passing formula tests does not establish the accuracy of source data or forecast
 This review does not establish a new TEL price target or certify every specialist
 valuation model. Company quality alone is not evidence that a calculated value
 must exceed its market price.
+
+## Source reconciliation update — 23 October 2026
+
+The interim filing's Note 8 (F-55) reports weighted-average common shares of
+216,056 thousand for both half-years. Common-share earnings are PHP 16,417 million
+in H1 2026 and PHP 17,443 million in H1 2025. Dividing these rounded amounts gives
+approximately 75.9849 and 80.7337; the reported EPS figures are 75.99 and 80.73.
+The small differences are consistent with rounding. Using total equity-holder
+income without removing preferred dividends would use the wrong numerator.
+
+This supports the interim share-basis comparison only; it does not complete the
+annual-revision reconciliation. The replay now retains and checks these figures.
+
+**Correction:** the earlier cash discussion assigned H1 2025 lease settlements
+of PHP 6,944 million to H1 2026. The correct H1 2026 amount is PHP 7,835 million.
+This was a period-transcription error in research notes; neither amount feeds the
+published DDM calculation. It reinforces why the two periods must be retained
+side by side before constructing a cash-flow valuation.
+
+The dividend ledger now records declaration, record and scheduled payment dates
+for each common dividend. The cited declarations substantiate the payment schedule;
+they do not independently prove individual receipt. The PHP 92 scenario uses the
+two scheduled payments falling within the case's trailing-year window. Preferred
+and special dividends are excluded. Future maintenance remains an assumption.

@@ -26,11 +26,21 @@
     "terminal_growth": 0.01,
     "discount_rate_basis": "Chosen nominal PHP equity-return hurdle, not a measured CAPM estimate or WACC. Stress tested from 10% to 14% given leverage and dividend risk.",
     "growth_basis": "Conservative 1% perpetual dividend growth scenario given low service-revenue growth and a lower latest interim dividend. Not company guidance.",
-    "dividend_basis": "Last twelve months of common dividends paid: 46 in April 2026 plus 46 in September 2026. Future maintenance is an assumption, not a declared full-year 2026 payout."
+    "dividend_basis": "Regular common dividends with declared payment dates in the trailing year: 46 on 16 April 2026 and 46 on 11 September 2026. Declarations establish the schedule, not individual shareholder receipt or future sustainability."
   },
   "sensitivity": {
-    "discount_rates": [0.10, 0.11, 0.12, 0.13, 0.14],
-    "growth_rates": [0, 0.01, 0.02]
+    "discount_rates": [
+      0.1,
+      0.11,
+      0.12,
+      0.13,
+      0.14
+    ],
+    "growth_rates": [
+      0,
+      0.01,
+      0.02
+    ]
   },
   "expected": {
     "ttm_eps": 133.89,
@@ -46,5 +56,50 @@
     "disclosure_url": "https://www.sec.gov/Archives/edgar/data/78150/000119312526347926/phi-ex99_1.htm",
     "clarification_url": "https://www.sec.gov/Archives/edgar/data/78150/000119312526401539/phi-ex99_1.htm"
   },
-  "scope": "Dated public-source research illustration. Discrete cited facts and original calculations only; no copied reports. No exhaustive disclosure review or verified CAPM estimate. Reassess before using as an investment view."
+  "scope": "Dated public-source research illustration. Discrete cited facts and original calculations only; no copied reports. No exhaustive disclosure review or verified CAPM estimate. Reassess before using as an investment view.",
+  "dividend_events": [
+    {
+      "id": "TEL-20260226-common",
+      "declared_on": "2026-02-26",
+      "record_date": "2026-03-26",
+      "payment_date": "2026-04-16",
+      "amount_per_share": 46,
+      "share_class": "common",
+      "kind": "regular",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/78150/000119312526073891/phi-ex99_1.htm"
+    },
+    {
+      "id": "TEL-20260813-common",
+      "declared_on": "2026-08-13",
+      "record_date": "2026-08-28",
+      "payment_date": "2026-09-11",
+      "amount_per_share": 46,
+      "share_class": "common",
+      "kind": "regular",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/78150/000119312526348006/phi-ex99_1.htm"
+    }
+  ],
+  "interim_reconciliation": {
+    "source_url": "https://www.sec.gov/Archives/edgar/data/78150/000119312526347861/phi_6-k_2q2026_v2.htm",
+    "checked_on": "2026-10-23",
+    "eps_reference": "Note 8, EPS table, F-55; earnings PHP millions, weighted shares thousands",
+    "cash_reference": "Management discussion: Liquidity and Capital Resources; PHP millions",
+    "h1_2026": {
+      "common_earnings_million": 16417,
+      "weighted_shares_thousand": 216056,
+      "reported_basic_eps": 75.99,
+      "operating_cash_million": 45776,
+      "cash_capex_million": 23736,
+      "lease_settlements_million": 7835
+    },
+    "h1_2025": {
+      "common_earnings_million": 17443,
+      "weighted_shares_thousand": 216056,
+      "reported_basic_eps": 80.73,
+      "operating_cash_million": 46705,
+      "cash_capex_million": 34078,
+      "lease_settlements_million": 6944
+    },
+    "scope": "Rounded interim denominator/numerator cross-check only. Does not reconcile the revised annual statements or establish normalized free cash flow."
+  }
 }

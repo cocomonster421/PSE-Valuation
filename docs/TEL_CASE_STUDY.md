@@ -22,7 +22,7 @@ See the [formula and assumption review](TEL_MODEL_REVIEW.md).
 | FY2025 basic EPS | 138.63 | [PSE EDGE financial reports](https://edge.pse.com.ph/companyPage/financial_reports_view.do?cmpy_id=6), annual income statement. Per-share amounts are pesos, not millions. |
 | H1 EPS | 75.99 in 2026; 80.73 in 2025 | Same source, year-to-date basic EPS columns. Use six-month figures rather than the adjacent three-month columns. |
 | FY2025 earnings-year dividend | 94 | [PLDT FY2025 results, filed 26 Feb 2026](https://www.sec.gov/Archives/edgar/data/78150/000119312526073891/phi-ex99_1.htm). Includes a final 46 declared in 2026; this is not the trailing payment total at the case date. |
-| Latest twelve-month payments | 46 in April 2026 + 46 in September 2026 = 92 | [PSE EDGE dividend records](https://edge.pse.com.ph/companyPage/dividends_and_rights_form.do?cmpy_id=6), checked against the [August 2026 dividend filing](https://www.sec.gov/Archives/edgar/data/78150/000119312526348006/08.13.2026_boardmeeting.htm). Both common-share cash dividends. |
+| Common dividend payment schedule | 46 in April 2026 + 46 in September 2026 = 92 | [PSE EDGE dividend records](https://edge.pse.com.ph/companyPage/dividends_and_rights_form.do?cmpy_id=6), checked against the [August 2026 dividend filing](https://www.sec.gov/Archives/edgar/data/78150/000119312526348006/08.13.2026_boardmeeting.htm). Both regular common dividends; scheduled for 16 April and 11 September. Declaration evidence does not establish individual receipt. |
 
 Derived earnings check: **138.63 + 75.99 − 80.73 = 133.89 TTM EPS** for the twelve
 months ended June 2026. This roll-forward uses the published per-share series; it
@@ -37,7 +37,7 @@ price target on its own. The [source review](TEL_MODEL_REVIEW.md#financial-repor
 links the disclosures and explains their scope.
 
 Trailing dividend / TTM reported EPS = 92 / 133.89 = **68.7%**. The periods differ:
-dividends are payments through September; earnings end in June. This is a coverage
+dividends use scheduled payment dates through September; earnings end in June. This is a coverage
 screen, not a matched-period payout ratio. PLDT's stated 60% FY2025 payout uses
 Telco Core earnings, a different denominator; it should not be substituted for
 reported earnings. [FY2025 results](https://www.sec.gov/Archives/edgar/data/78150/000119312526073891/phi-ex99_1.htm)
@@ -63,7 +63,7 @@ part of the analytical decision.
 
 | Input | Base case | Rationale / limitation |
 | --- | --- | --- |
-| Base annual dividend | 92 | Latest twelve-month regular payments. Maintaining this level is an assumption; it is not a declared FY2026 total. |
+| Base annual dividend | 92 | Regular dividends scheduled within the latest twelve months. Maintaining this level is an assumption; it is not a declared FY2026 total. |
 | Required yearly return | 12% | Chosen nominal PHP equity-return hurdle for a leveraged equity with payout risk. Not a measured CAPM estimate, industry average or WACC. A different required return materially changes the answer. |
 | Long-run dividend growth | 1% | Conservative scenario consistent with limited recent revenue growth and payout uncertainty; not company guidance. Test 0–2%. |
 

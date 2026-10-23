@@ -2,6 +2,7 @@
 import json
 import math
 import sys
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -13,7 +14,23 @@ def replay():
     case = json.loads((ROOT / 'examples/tel_case.json').read_text(encoding='utf-8'))
     facts, assumptions = case['reported'], case['assumptions']
     eps = facts['fy2025_eps'] + facts['h1_2026_eps'] - facts['h1_2025_eps']
-    dividend = facts['april_2026_dividend'] + facts['september_2026_dividend']
+    end = date.fromisoformat(case['analysis_date'])
+    start = end.replace(year=end.year-1)
+    events = case['dividend_events']
+    assert len({event['id'] for event in events}) == len(events), 'Duplicate dividend events'
+    included = [e for e in events if start < date.fromisoformat(e['payment_date']) <= end
+                and e['kind']=='regular' and e['share_class']=='common']
+    dividend = sum(e['amount_per_share'] for e in included)
+    assert dividend == facts['april_2026_dividend'] + facts['september_2026_dividend']
+    interim = {}
+    for period in ('h1_2026','h1_2025'):
+        data = case['interim_reconciliation'][period]
+        reconstructed = data['common_earnings_million']*1000/data['weighted_shares_thousand']
+        # Published totals are rounded to millions/thousands; EPS uses unrounded amounts.
+        assert abs(reconstructed-data['reported_basic_eps']) < .01
+        interim[period] = dict(eps_from_rounded_totals=reconstructed,
+            cash_after_capex_before_remaining_adjustments=data['operating_cash_million']-data['cash_capex_million'],
+            lease_settlements_million=data['lease_settlements_million'])
     price = case['price']['value']
     inputs = dict(dividend=dividend, discount_rate=assumptions['discount_rate'],
                   terminal_growth=assumptions['terminal_growth'], price=price)
@@ -31,6 +48,7 @@ def replay():
             values.append(round(value, 2))
         rows.append({'required_return': rate, 'values': values})
     return {'verified': True, 'verification_scope': 'Arithmetic only; not source accuracy or a calibrated price target',
+            'dividend_schedule': included, 'interim_cross_check': interim,
             'source_review': case['source_review'], 'ticker': 'TEL', 'price_as_of': case['price']['as_of'],
             'ttm_eps': round(eps, 2), 'current_pe': price / eps,
             'trailing_dividend_yield': dividend / price, 'payout_to_reported_ttm_eps': dividend / eps,
