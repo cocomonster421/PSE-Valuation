@@ -161,3 +161,34 @@ its EPS, price/EPS and dividend/EPS outputs provisional, and explicitly returns
 `annual_source_comparison`. The published DDM uses dividends, so this conflict
 does not alter its arithmetic; it weakens any earnings-based support for payout
 sustainability. Resolving this conflict is a prerequisite to an earnings valuation.
+
+## Income-statement reconciliation — 23 October 2026
+
+The [February release](https://www.sec.gov/Archives/edgar/data/78150/000119312526073891/phi-ex99_1.htm)
+and [annual filing](https://www.sec.gov/Archives/edgar/data/78150/000119312526182147/phi-20251231.htm)
+allow this statement-level comparison. Amounts are PHP millions, except EPS.
+
+| FY2025 item | February release | April annual filing | Change |
+| --- | ---: | ---: | ---: |
+| Operating income | 50,348 | 50,348 | 0 |
+| Net other expenses | 10,859 | 12,658 | +1,799 |
+| Tax expense | 9,271 | 8,821 | -450 |
+| Consolidated profit | 30,218 | 28,869 | -1,349 |
+| Noncontrolling profit | 207 | 207 | 0 |
+| Parent-attributable profit | 30,011 | 28,662 | -1,349 |
+| Basic EPS | 138.63 | 132.38 | -6.25 |
+
+The after-tax difference is **1,799 − 450 = 1,349**. Operating income and minority
+allocation do not explain the difference. This is an arithmetic reconciliation,
+not a completed account-by-account explanation of the adjustments.
+
+Note 2 (F-14/F-15) describes prior-period hedge-recycling corrections and explicitly
+bridges FY2024 EPS from 149.26 to 141.80. This establishes that the annual series
+contains revisions absent from the release's comparatives. It does not establish
+that the unchanged interim EPS series has incorporated matching revisions.
+
+The August disclosure subsequently identifies further classification corrections
+and withdrawal of the original opinions. Therefore neither the matched annual
+arithmetic nor the common share count clears the reporting qualification. The
+replay checks both statements and their difference while retaining
+`source_reconciled: false`.

@@ -48,10 +48,22 @@ def replay():
             values.append(round(value, 2))
         rows.append({'required_return': rate, 'values': values})
     annual = case['annual_source_comparison']
+    bridge=annual['income_statement_bridge']
+    for source in ('release','form_20f'):
+        statement=bridge[source]
+        assert statement['operating_income']-statement['other_expenses_net']-statement['tax_expense']==statement['net_income']
+        assert statement['net_income']-statement['noncontrolling_income']==statement['parent_income']
+    old,new=bridge['release'],bridge['form_20f']
+    other_expense_increase=new['other_expenses_net']-old['other_expenses_net']
+    tax_expense_reduction=old['tax_expense']-new['tax_expense']
+    profit_reduction=old['parent_income']-new['parent_income']
+    assert other_expense_increase-tax_expense_reduction==profit_reduction
+    statement_difference=dict(other_expense_increase=other_expense_increase,
+        tax_expense_reduction=tax_expense_reduction,parent_profit_reduction=profit_reduction,unit='PHP millions')
     annual_eps_check = annual['form_20f_common_earnings_million']*1000/annual['form_20f_weighted_shares_thousand']
     assert abs(annual_eps_check-annual['form_20f_basic_eps']) < .01
     return {'arithmetic_verified': True, 'source_reconciled': False,
-            'annual_source_comparison': annual, 'verification_scope': 'Arithmetic only; not source accuracy or a calibrated price target',
+            'annual_source_comparison': annual, 'annual_statement_difference': statement_difference, 'verification_scope': 'Arithmetic only; not source accuracy or a calibrated price target',
             'dividend_schedule': included, 'interim_cross_check': interim,
             'source_review': case['source_review'], 'ticker': 'TEL', 'price_as_of': case['price']['as_of'],
             'provisional_ttm_eps': round(eps, 2), 'provisional_price_to_eps': price / eps,

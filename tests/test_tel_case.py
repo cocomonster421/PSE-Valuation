@@ -36,3 +36,11 @@ class TelCaseTests(unittest.TestCase):
         comparison=case['annual_source_comparison']
         self.assertEqual(comparison['status'],'unresolved')
         self.assertAlmostEqual(comparison['earnings_release_basic_eps']-comparison['form_20f_basic_eps'],6.25)
+
+    def test_annual_statement_difference_reconciles_without_clearing_source_status(self):
+        case=replay()
+        change=case['annual_statement_difference']
+        self.assertEqual(change['other_expense_increase'],1799)
+        self.assertEqual(change['tax_expense_reduction'],450)
+        self.assertEqual(change['parent_profit_reduction'],1349)
+        self.assertFalse(case['source_reconciled'])

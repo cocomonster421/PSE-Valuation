@@ -112,6 +112,27 @@
     "form_20f_filed_on": "2026-04-27",
     "source_url": "https://www.sec.gov/Archives/edgar/data/78150/000119312526182147/phi-20251231.htm",
     "statement_reference": "Note 8, EPS, F-60/F-61; IFRS basis in Note 2",
-    "basis_note": "The annual filing and February release differ. Cause and comparability with the Philippine interim series are not yet reconciled. Do not substitute the annual filing EPS into that series without reconciling its basis."
+    "basis_note": "The annual filing and February release differ. Cause and comparability with the Philippine interim series are not yet reconciled. Do not substitute the annual filing EPS into that series without reconciling its basis.",
+    "income_statement_bridge": {
+      "unit": "PHP millions",
+      "release": {
+        "operating_income": 50348,
+        "other_expenses_net": 10859,
+        "tax_expense": 9271,
+        "net_income": 30218,
+        "noncontrolling_income": 207,
+        "parent_income": 30011
+      },
+      "form_20f": {
+        "operating_income": 50348,
+        "other_expenses_net": 12658,
+        "tax_expense": 8821,
+        "net_income": 28869,
+        "noncontrolling_income": 207,
+        "parent_income": 28662
+      },
+      "note_2_reference": "F-14/F-15: revisions of prior-period statements, hedge recycling; FY2024 basic EPS 149.26 less 7.46 = 141.80",
+      "interpretation": "The statement-level difference reconciles numerically. This is not a completed account-by-account explanation of FY2025 hedge corrections or reconciliation of interim comparatives; the August withdrawal and planned amendment remain unresolved."
+    }
   }
 }
