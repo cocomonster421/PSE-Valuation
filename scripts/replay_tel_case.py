@@ -47,11 +47,15 @@ def replay():
             assert math.isclose(value, dividend * (1 + growth) / (rate - growth), abs_tol=1e-8)
             values.append(round(value, 2))
         rows.append({'required_return': rate, 'values': values})
-    return {'verified': True, 'verification_scope': 'Arithmetic only; not source accuracy or a calibrated price target',
+    annual = case['annual_source_comparison']
+    annual_eps_check = annual['form_20f_common_earnings_million']*1000/annual['form_20f_weighted_shares_thousand']
+    assert abs(annual_eps_check-annual['form_20f_basic_eps']) < .01
+    return {'arithmetic_verified': True, 'source_reconciled': False,
+            'annual_source_comparison': annual, 'verification_scope': 'Arithmetic only; not source accuracy or a calibrated price target',
             'dividend_schedule': included, 'interim_cross_check': interim,
             'source_review': case['source_review'], 'ticker': 'TEL', 'price_as_of': case['price']['as_of'],
-            'ttm_eps': round(eps, 2), 'current_pe': price / eps,
-            'trailing_dividend_yield': dividend / price, 'payout_to_reported_ttm_eps': dividend / eps,
+            'provisional_ttm_eps': round(eps, 2), 'provisional_price_to_eps': price / eps,
+            'trailing_dividend_yield': dividend / price, 'provisional_dividend_to_eps_screen': dividend / eps,
             'result': result, 'sensitivity_growth_rates': case['sensitivity']['growth_rates'],
             'sensitivity': rows,
             'growth_implied_by_price_at_base_return': (price * assumptions['discount_rate'] - dividend) / (price + dividend),

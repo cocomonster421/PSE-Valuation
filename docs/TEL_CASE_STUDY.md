@@ -24,10 +24,14 @@ See the [formula and assumption review](TEL_MODEL_REVIEW.md).
 | FY2025 earnings-year dividend | 94 | [PLDT FY2025 results, filed 26 Feb 2026](https://www.sec.gov/Archives/edgar/data/78150/000119312526073891/phi-ex99_1.htm). Includes a final 46 declared in 2026; this is not the trailing payment total at the case date. |
 | Common dividend payment schedule | 46 in April 2026 + 46 in September 2026 = 92 | [PSE EDGE dividend records](https://edge.pse.com.ph/companyPage/dividends_and_rights_form.do?cmpy_id=6), checked against the [August 2026 dividend filing](https://www.sec.gov/Archives/edgar/data/78150/000119312526348006/08.13.2026_boardmeeting.htm). Both regular common dividends; scheduled for 16 April and 11 September. Declaration evidence does not establish individual receipt. |
 
-Derived earnings check: **138.63 + 75.99 − 80.73 = 133.89 TTM EPS** for the twelve
+**Source conflict found 23 October:** the April Form 20-F reports FY2025 EPS of
+132.38 versus 138.63 in the February release. Their accounting-basis differences
+remain unresolved. See the [annual source comparison](TEL_MODEL_REVIEW.md#annual-eps-source-conflict--23-october-2026).
+
+Provisional earnings arithmetic: **138.63 + 75.99 − 80.73 = 133.89 TTM EPS** for the twelve
 months ended June 2026. This roll-forward uses the published per-share series; it
 assumes comparable share bases and no unadjusted restatement. Reconcile those if a
-subsequent filing changes the comparatives. Current P/E = 1,190 / 133.89 = **8.89×**.
+subsequent filing changes the comparatives. Provisional price/EPS = 1,190 / 133.89 = **8.89×**.
 This is descriptive, not a justified target multiple.
 
 **Reporting qualification:** PLDT disclosed planned revisions and withdrawn original

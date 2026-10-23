@@ -7,7 +7,7 @@ class TelCaseTests(unittest.TestCase):
     def test_published_case_and_sensitivity_reproduce(self):
         case = replay()
         self.assertAlmostEqual(case['result']['fair_value'], 844.7272727272727)
-        self.assertAlmostEqual(case['ttm_eps'], 133.89)
+        self.assertAlmostEqual(case['provisional_ttm_eps'], 133.89)
         # At fixed growth a higher return hurdle reduces value.
         middle = [row['values'][1] for row in case['sensitivity']]
         self.assertEqual(middle, sorted(middle, reverse=True))
@@ -27,3 +27,12 @@ class TelCaseTests(unittest.TestCase):
         self.assertEqual(interim['h1_2025']['lease_settlements_million'],6944)
         self.assertEqual(interim['h1_2026']['cash_after_capex_before_remaining_adjustments'],22040)
         self.assertEqual(interim['h1_2025']['cash_after_capex_before_remaining_adjustments'],12627)
+
+    def test_annual_source_conflict_remains_explicit(self):
+        case = replay()
+        self.assertTrue(case['arithmetic_verified'])
+        self.assertFalse(case['source_reconciled'])
+        self.assertNotIn('current_pe',case)
+        comparison=case['annual_source_comparison']
+        self.assertEqual(comparison['status'],'unresolved')
+        self.assertAlmostEqual(comparison['earnings_release_basic_eps']-comparison['form_20f_basic_eps'],6.25)

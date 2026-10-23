@@ -140,3 +140,24 @@ for each common dividend. The cited declarations substantiate the payment schedu
 they do not independently prove individual receipt. The PHP 92 scenario uses the
 two scheduled payments falling within the case's trailing-year window. Preferred
 and special dividends are excluded. Future maintenance remains an assumption.
+
+## Annual EPS source conflict — 23 October 2026
+
+The [Form 20-F filed on 27 April 2026](https://www.sec.gov/Archives/edgar/data/78150/000119312526182147/phi-20251231.htm)
+reports FY2025 basic EPS of **132.38**, compared with **138.63** in the February
+release used by the original case. Note 8 reports common earnings of PHP 28,603
+million and weighted-average common shares of 216,056 thousand. These rounded
+inputs reproduce approximately 132.39, consistent with the reported EPS to within
+one cent. Note 2 identifies the annual filing's IFRS accounting basis.
+
+The difference is **PHP 6.25 per share**. Its cause and comparability with the
+Philippine interim series have not been established here. A common share count
+does not establish a common earnings basis. Do not replace only the annual EPS
+and treat the resulting mixed-series TTM calculation as verified.
+
+The replay retains the original 133.89 TTM arithmetic for reproducibility, labels
+its EPS, price/EPS and dividend/EPS outputs provisional, and explicitly returns
+`source_reconciled: false`. The two annual source observations are retained in
+`annual_source_comparison`. The published DDM uses dividends, so this conflict
+does not alter its arithmetic; it weakens any earnings-based support for payout
+sustainability. Resolving this conflict is a prerequisite to an earnings valuation.

@@ -42,7 +42,8 @@ explains why a dividend model is used rather than an unsupported enterprise DCF.
 
 The report includes primary-source links, a 15-cell sensitivity table, risks and
 reverse calculations showing what the reference price implies. Its data is frozen
-in [a separate case file](examples/tel_case.json); real-company working templates
+in [a separate case file](examples/tel_case.json). An unresolved annual EPS conflict
+is documented; the earnings ratios remain provisional. Real-company working templates
 remain blank. No reports are redistributed.
 
 Reproduce the case with Python alone:

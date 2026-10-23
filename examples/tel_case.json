@@ -50,9 +50,9 @@
     "maximum_sensitivity_value": 1173
   },
   "source_review": {
-    "status": "Provisional earnings bridge; no calibrated price target",
+    "status": "Unresolved annual EPS source conflict; no calibrated price target",
     "review_path": "docs/TEL_MODEL_REVIEW.md",
-    "qualification": "Original 2025 audit opinions were withdrawn; planned financial-statement revisions require reconciliation. Historical dividend arithmetic is unchanged.",
+    "qualification": "The February release reports FY2025 EPS 138.63; the April Form 20-F reports 132.38. The cause and accounting-basis comparability remain unresolved, alongside withdrawn original 2025 audit opinions and planned revisions. The original EPS bridge is retained only as provisional arithmetic.",
     "disclosure_url": "https://www.sec.gov/Archives/edgar/data/78150/000119312526347926/phi-ex99_1.htm",
     "clarification_url": "https://www.sec.gov/Archives/edgar/data/78150/000119312526401539/phi-ex99_1.htm"
   },
@@ -101,5 +101,17 @@
       "lease_settlements_million": 6944
     },
     "scope": "Rounded interim denominator/numerator cross-check only. Does not reconcile the revised annual statements or establish normalized free cash flow."
+  },
+  "annual_source_comparison": {
+    "checked_on": "2026-10-23",
+    "status": "unresolved",
+    "earnings_release_basic_eps": 138.63,
+    "form_20f_basic_eps": 132.38,
+    "form_20f_common_earnings_million": 28603,
+    "form_20f_weighted_shares_thousand": 216056,
+    "form_20f_filed_on": "2026-04-27",
+    "source_url": "https://www.sec.gov/Archives/edgar/data/78150/000119312526182147/phi-20251231.htm",
+    "statement_reference": "Note 8, EPS, F-60/F-61; IFRS basis in Note 2",
+    "basis_note": "The annual filing and February release differ. Cause and comparability with the Philippine interim series are not yet reconciled. Do not substitute the annual filing EPS into that series without reconciling its basis."
   }
 }
