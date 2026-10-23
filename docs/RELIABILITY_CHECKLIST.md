@@ -38,6 +38,11 @@
   replay their arithmetic and period alignment in offline reviews. Flag missing
   component evidence and undated or expired comparability reviews.
 
+- [x] Flag changed imported figures with the same period end. Preview warns before
+  applying; applying preserves both source observations and marks reporting unresolved.
+  Offline reviews show the conflict. Different period ends and price refreshes are
+  excluded. This detects a discrepancy, not which source is correct.
+
 ## Remaining
 
 - [ ] Reconcile individual dividend payment periods and revised earnings/share bases
@@ -89,3 +94,17 @@ user review, not independent verification. If the bases differ, reconstruct EPS
 from comparable earnings and an appropriate trailing-period share denominator;
 do not mark an incompatible bridge reconciled. New imports reset the bridge
 review. The general reporting-review check still applies separately.
+
+## Conflicting figures
+
+When a selected import changes a saved financial figure for the same period end,
+both observations are retained under `reports.source_conflicts` in the company
+brain. Applying it still requires the normal explicit selection and confirmation.
+The new figure becomes the working baseline; the previous value, source, dates,
+units and file hash (when available) remain in the conflict evidence and backup.
+
+Use **Reporting review** to explain whether the difference came from duration,
+units, scope, revisions or a parsing error before marking it reconciled. This
+review is a user declaration. The evidence remains saved after reconciliation.
+Only downloaded/scanned and selected imports are covered: this does not compare
+every available filing or detect an undisclosed change automatically.

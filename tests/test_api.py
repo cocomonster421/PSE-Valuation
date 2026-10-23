@@ -98,6 +98,34 @@ class LocalAPITests(unittest.TestCase):
                 checked=self.request('/api/review',dict(ticker=ticker,method='pe',inputs={'eps':5,'multiple':10}))[1]
                 self.assertTrue(any('Financial inputs imported' in issue for issue in checked['issues']))
 
+    def test_same_period_import_preserves_conflicting_sources(self):
+        ticker='CONFLICT'
+        old=dict(value=200,period_end='2025-12-31',as_of='2026-03-01',note='Earlier annual report',source_url='https://example.com/old',period_type='annual')
+        stock=dict(ticker=ticker,name='Conflict fixture',industry='Test',currency='PHP',fields={'operating_profit':old},reports={'review_status':'reviewed','review_note':'Earlier review'})
+        server.write(server.ROOT/f'stock_data/{ticker}.json',stock)
+        folder=server.ROOT/'reports'/ticker
+        folder.mkdir(parents=True)
+        (folder/'annual.txt').write_text('Operating profit 100',encoding='utf-8')
+        code,preview=self.request(f'/api/update/{ticker}',dict(mode='offline',file='annual.txt',period='2025-12-31',scale=1))
+        self.assertEqual(code,200)
+        self.assertTrue(any('source conflict' in w for w in preview['warnings']))
+        self.assertEqual(self.request(f'/api/stocks/{ticker}')[1]['data']['reports']['review_status'],'reviewed')
+        self.assertEqual(self.request('/api/update-apply',dict(token=preview['token'],selected=['0'],confirmed=True))[0],200)
+        saved=self.request(f'/api/stocks/{ticker}')[1]['data']
+        self.assertEqual(saved['fields']['operating_profit']['value'],100)
+        self.assertEqual(saved['reports']['review_status'],'unresolved')
+        conflict=next(iter(saved['reports']['source_conflicts'].values()))
+        self.assertEqual(conflict['previous']['value'],200)
+        self.assertEqual(conflict['previous']['source_url'],'https://example.com/old')
+        self.assertEqual(conflict['proposed']['value'],100)
+        self.assertTrue(conflict['proposed']['source_hash'])
+        from backend.brain import encode, decode
+        brain=server.ROOT/'conflict.toml'
+        brain.write_text(encode(saved),encoding='utf-8')
+        self.assertEqual(decode(brain)['reports']['source_conflicts'],saved['reports']['source_conflicts'])
+        checked=self.request('/api/review',dict(ticker=ticker,method='pe',inputs={'eps':5,'multiple':10}))[1]
+        self.assertTrue(any('saved 200 versus imported 100' in issue for issue in checked['issues']))
+
     def test_price_only_refresh_preserves_financial_review(self):
         ticker='PRICEONLY'
         reports={'review_status':'reviewed','reviewed_on':'2026-10-22','review_note':'Reviewed filings'}

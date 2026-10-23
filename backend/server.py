@@ -19,7 +19,7 @@ from backend.catalog import METHODS, initial_policy
 from backend.engine import calculate, compare, ENGINE_VERSION
 from backend.brain import decode as read_brain, encode as encode_brain, stock_path, stock_paths
 from backend.importer import document_candidates, refresh_candidates
-from backend.review import review_inputs
+from backend.review import review_inputs, same_period_conflict
 from backend.batch_review import review_company
 from backend.cash_flow import reconcile_cash_flow
 
@@ -244,6 +244,10 @@ class Handler(BaseHTTPRequestHandler):
                 for index,candidate in enumerate(candidates):
                     candidate["id"]=str(index)
                     candidate["previous"]=company["fields"].get(candidate["key"],{}).get("value")
+                    conflict=same_period_conflict(candidate['key'],company['fields'].get(candidate['key'],{}),candidate)
+                    if conflict:
+                        candidate['source_conflict']=conflict
+                        warnings.append(f"{candidate['key']}: same-period source conflict; applying this value records an unresolved reporting issue.")
                 preview={"token":token,"ticker":ticker,"revision":revision(company),"mode":mode,"folder":str(folder),"candidates":candidates,"findings":findings,"warnings":warnings,"hashes":hashes}
                 write(ROOT/"runtime/import-previews"/f"{token}.json",preview)
                 return self.send(200,preview)
@@ -274,12 +278,17 @@ class Handler(BaseHTTPRequestHandler):
                         file=ROOT/"reports"/ticker/filename
                         if not file.exists() or hashlib.sha256(file.read_bytes()).hexdigest()!=digest:
                             raise ValueError("A source report changed. Scan again.")
+                    conflicts={}
                     for candidate in chosen:
                         old=company["fields"].get(candidate["key"],{})
                         old_date=(old.get("period_end") or (old.get("as_of") if candidate["key"]=="price" else "") or "")[:10]
                         if old_date and candidate["as_of"][:10]<old_date:
                             raise ValueError(f"{candidate['key']}: proposed data is older than saved data; preserve the newer baseline")
-                        company["fields"][candidate["key"]]={k:v for k,v in candidate.items() if k not in {"id","key","previous"}}
+                        conflict=same_period_conflict(candidate['key'],old,candidate)
+                        if conflict:
+                            conflict['detected_on']=datetime.now(timezone.utc).isoformat()
+                            conflicts[uuid.uuid4().hex]=conflict
+                        company["fields"][candidate["key"]]={k:v for k,v in candidate.items() if k not in {"id","key","previous","source_conflict"}}
                     financial_keys=sorted({candidate["key"] for candidate in chosen if candidate["key"] != "price"})
                     if financial_keys:
                         reports=company.setdefault("reports", {})
@@ -289,6 +298,10 @@ class Handler(BaseHTTPRequestHandler):
                         reports["invalidated_on"]=datetime.now(timezone.utc).isoformat()
                         reports["invalidated_fields"]=financial_keys
                         reports["invalidation_reason"]="Financial inputs imported; review the new figures and any reporting issues before relying on the valuation."
+                    if conflicts:
+                        reports=company.setdefault('reports',{})
+                        reports.setdefault('source_conflicts',{}).update(conflicts)
+                        reports['review_status']='unresolved'
                     if flagged:
                         reports=company.setdefault("reports",{})
                         reports["review_status"]="unresolved"
@@ -399,6 +412,16 @@ class Handler(BaseHTTPRequestHandler):
         for key in ("review_note", "reviewed_on"):
             if key in reports and not isinstance(reports[key], str):
                 raise ValueError("Reporting review date and note must be text")
+        conflicts=reports.get('source_conflicts',{})
+        if not isinstance(conflicts,dict):
+            raise ValueError('Source conflicts must be an object keyed by evidence ID')
+        for conflict in conflicts.values():
+            if not isinstance(conflict,dict) or any(not isinstance(conflict.get(k),str) for k in ('field','period_end','note')):
+                raise ValueError('Source conflict needs field, period and explanation')
+            for side in ('previous','proposed'):
+                observation=conflict.get(side)
+                if not isinstance(observation,dict) or isinstance(observation.get('value'),bool) or not isinstance(observation.get('value'),(int,float)) or not math.isfinite(observation['value']):
+                    raise ValueError('Source conflict observations require finite numbers')
         findings=reports.get('disclosure_findings',{})
         if not isinstance(findings,dict):
             raise ValueError('Disclosure findings must be an object keyed by evidence ID')

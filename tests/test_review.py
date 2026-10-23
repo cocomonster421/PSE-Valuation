@@ -74,3 +74,12 @@ class ReviewTests(unittest.TestCase):
         checked=review_inputs(stock,initial_policy(),'dcf_fcff',dict(cash_flow=100,shares=10,net_debt=20,growth=.03,terminal_growth=.02,discount_rate=.1),date(2026,10,22))
         self.assertTrue(any('unit differs' in s for s in checked['issues']))
         self.assertTrue(any('mix financial periods' in s for s in checked['issues']))
+
+    def test_source_conflict_does_not_treat_new_periods_or_prices_as_revisions(self):
+        from backend.review import same_period_conflict
+        old=dict(value=10,period_end='2025-12-31')
+        self.assertIsNone(same_period_conflict('eps',old,dict(value=10,period_end='2025-12-31')))
+        self.assertIsNone(same_period_conflict('eps',old,dict(value=12,period_end='2026-06-30')))
+        self.assertIsNone(same_period_conflict('price',old,dict(value=12,period_end='2025-12-31')))
+        self.assertIsNone(same_period_conflict('eps',{},dict(value=12,period_end='2025-12-31')))
+        self.assertIsNotNone(same_period_conflict('eps',old,dict(value=12,period_end='2025-12-31')))

@@ -12,6 +12,23 @@ ANNUAL_FIELDS = {"eps", "dividend", "cash_flow", "fcff_cash_flow", "fcfe_cash_fl
 PERIOD_TYPES = {"unknown", "annual", "ttm", "quarter", "ytd", "point_in_time"}
 
 
+def same_period_conflict(key, previous, proposed):
+    """Flag changed reported figures, without inferring which source is correct."""
+    if key == 'price' or previous.get('value') is None or proposed.get('value') is None:
+        return None
+    old_end=previous.get('period_end')
+    new_end=proposed.get('period_end')
+    if not old_end or old_end != new_end:
+        return None
+    if math.isclose(previous['value'],proposed['value'],rel_tol=1e-10,abs_tol=1e-8):
+        return None
+    evidence_keys=('value','period_end','period_type','as_of','source_url','source_file','source_hash','source_page','note','unit','scale')
+    return dict(field=key,period_end=old_end,
+                previous={k:previous[k] for k in evidence_keys if k in previous},
+                proposed={k:proposed[k] for k in evidence_keys if k in proposed},
+                note='Different values for the same period end; reconcile duration, units, scope and revisions. Neither source is automatically preferred.')
+
+
 def period_issues(key, source):
     if key not in ANNUAL_FIELDS:
         return []
@@ -90,6 +107,9 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
     if report_status == 'unresolved':
         for finding in reports.get('disclosure_findings',{}).values():
             data_issues.append(f"{finding['category']} — {finding['source_file']}, page {finding['source_page']}: {finding['excerpt']} (keyword match; review context)")
+    if report_status == 'unresolved':
+        for conflict in reports.get('source_conflicts',{}).values():
+            data_issues.append(f"Source conflict: {conflict['field']} at {conflict['period_end']}: saved {conflict['previous']['value']} versus imported {conflict['proposed']['value']}. {conflict['note']}")
     for key in policy["methods"][method]["fields"]+["price"]:
         value=inputs.get(key)
         if value is None:
