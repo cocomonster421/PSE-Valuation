@@ -94,6 +94,11 @@ per file, and cannot determine whether a passage is negated, historical or resol
 No matches does not mean a clean report. Online price/summary refresh does not run
 this disclosure screen.
 
+DCF also includes a [cash-flow reconciliation helper](docs/CASH_FLOW_RECONCILIATION.md)
+with separate FCFF/FCFE paths, interest-classification adjustments and saved lease,
+ownership and source explanations. The arithmetic is reproducible; accounting
+classification and forecast sustainability still require research.
+
 ## Getting started
 
 Requires **Python 3.11 or newer**. Download and extract the repository, keeping its

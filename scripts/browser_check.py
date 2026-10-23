@@ -272,6 +272,38 @@ def main():
                 assert len(demo_saved['derivations'])==2
                 assert demo_saved['input_review']['fields']
                 assert math.isclose(demo_saved['result']['steps'][-1]['value'],48)
+                # Reconcile the same annual cash statement under both cash-flow models.
+                page.locator('#advanced-methods').check()
+                for model in ('dcf_fcff','dcf_fcfe'):
+                    page.locator('#method').select_option(model)
+                    page.locator('#cash-statement-helper summary').click()
+                    entries=dict(operating_cash_flow=100,interest_paid=10,interest_outside_cfo=0,tax=25,
+                                 capital_spending=30,additional_capex=5,cfo_adjustment=0,investment_adjustment=0)
+                    entries.update(dict(debt=200,cash=40,other_claims=10) if model=='dcf_fcff' else dict(borrowings=20,repayments=12,common_adjustment=-3))
+                    for key,value in entries.items(): page.locator('#bridge-'+key).fill(str(value))
+                    page.locator('#bridge-period-type').select_option('annual')
+                    page.locator('#bridge-period-end').fill('2025-12-31')
+                    page.locator('#bridge-lease').select_option('none')
+                    for key in ('source','scope','lease','adjustment'):
+                        page.locator('#bridge-'+key+'-note').fill('Synthetic annual fixture; no leases; parent common equity; explicit adjustments.')
+                    page.locator('#bridge-apply').click()
+                    expect(page.locator('#input-cash_flow')).to_have_value('72.5' if model=='dcf_fcff' else '70')
+                    if model=='dcf_fcff': expect(page.locator('#input-net_debt')).to_have_value('170')
+                    expect(page.locator('#bridge-result')).to_contain_text('not independently verified')
+                for key,value in dict(shares=10,discount_rate=10,growth=0,terminal_growth=0).items():
+                    page.locator('#input-'+key).fill(str(value))
+                page.locator('#confirmed').check()
+                page.get_by_role('button',name='Calculate fair value').click()
+                expect(page.locator('.fair-value')).to_contain_text('70.00')
+                page.locator('#scenario-name').fill('Cash statement reconciliation')
+                with page.expect_response(lambda response: response.url.endswith('/api/scenarios') and response.request.method=='POST') as saved_response:
+                    page.locator('#save-scenario').click()
+                assert saved_response.value.status==201
+                expect(page.locator('#status')).to_contain_text('Analysis saved')
+                saved_records=[json.loads(p.read_text(encoding='utf-8')) for p in (test_root/'scenarios').glob('*.json')]
+                bridge_saved=next(s for s in saved_records if s['name']=='Cash statement reconciliation')
+                assert bridge_saved['derivations'][0]['reconciliation']['basis']['lease_treatment']=='none'
+                assert bridge_saved['derivations'][0]['reconciliation']['cash_flow']==70
                 assert not errors,errors
                 browser.close()
                 print("PASS: TEL DDM/DCF, beta/WACC, saved sensitivity, export/load, input invalidation, baseline edit/reload, policy edit, BDO/REIT recommendations, mobile width, zero external requests and zero page errors")

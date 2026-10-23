@@ -535,6 +535,7 @@ function rememberDerivation(item) {
 }
 function renderCashHelper() {
   $("cash-helper").replaceChildren();
+  if(["dcf_fcff","dcf_fcfe"].includes($("method").value)) renderCashStatementHelper();
   if($("method").value!=="dcf_fcff") return;
   const keys=["operating_profit","depreciation","other_noncash","capital_spending","additional_capex","working_capital_increase","debt","cash","other_claims"];
   const details=document.createElement("details");details.className="advanced";
@@ -626,3 +627,53 @@ $("apply-import").onclick=async()=>{
     await chooseStock(stockRecord.data.ticker);$("import-dialog").close();status(`${outcome.updated} figures updated; ${outcome.flagged || 0} disclosure passages saved.${outcome.reporting_review_required ? " Reporting review required; prior confirmation does not cover these imports." : ""}`);
   }catch(error){$("import-status").textContent=error.message;}
 };
+
+
+function renderCashStatementHelper(){
+  const method=$("method").value;
+  const definitions={
+    operating_cash_flow:["Reported operating cash flow","Net cash from operating activities after reported cash taxes. Do not deduct working capital again."],
+    interest_paid:["Interest paid on financing debt","Include financing interest once. Exclude amounts already counted in capital investment; explain your treatment."],
+    interest_outside_cfo:["That interest paid outside operating cash flow","Part of the above interest classified outside operating activities. Enter zero if all is already deducted in operating cash."],
+    tax:["Tax rate for the interest deduction (%)","Reviewed rate for the interest tax shield, not necessarily the headline income-tax rate."],
+    capital_spending:["Equipment and property investment","Positive investment amount, consistent with the chosen lease treatment."],
+    additional_capex:["Other capital investment","Software, intangibles and other investment not counted above. Enter a reviewed zero if none."],
+    cfo_adjustment:["Other operating-cash adjustments","Signed adjustment: positive adds cash, negative subtracts cash. Explain normalization and lease-payment adjustments."],
+    investment_adjustment:["Investment adjustments","Signed adjustment to cash after investment. A negative amount adds investment deductions, including any required non-cash lease additions."],
+    debt:["Financing debt balance","Use the same financing/lease scope as the cash flow and discount rate."],
+    cash:["Available excess cash","Exclude restricted cash and cash needed for operations when appropriate."],
+    other_claims:["Other claims ahead of common shareholders","Include preferred and minority claims when required by the cash-flow ownership scope. Avoid double counting."],
+    borrowings:["New debt financing","New borrowing within the chosen financing scope; explain non-cash lease financing if included."],
+    repayments:["Debt principal repaid","Principal only, not interest. Include lease principal only when leases are financing."],
+    common_adjustment:["Adjustment to cash attributable to common shareholders","Signed adjustment for non-common or minority cash flows not already removed. Explain ownership scope; cash distributions alone may not capture the full claim."]
+  };
+  const keys=['operating_cash_flow','interest_paid','interest_outside_cfo','tax','capital_spending','additional_capex','cfo_adjustment','investment_adjustment',...(method==='dcf_fcff'?['debt','cash','other_claims']:['borrowings','repayments','common_adjustment'])];
+  const wrapper=document.createElement('div');wrapper.id='cash-statement-helper';
+  wrapper.innerHTML='<details class="advanced"><summary>Reconcile a cash-flow statement</summary><p class="help">Annual figures in full pesos. Every adjustment needs a value, including reviewed zeros. Classification choices remain your responsibility.</p><div class="fields"></div><label>Period covered<select id="bridge-period-type"><option value="">Choose</option><option value="annual">Full year</option><option value="ttm">Trailing 12 months</option></select></label><label>Period end<input id="bridge-period-end" type="date"></label><label>Lease treatment<select id="bridge-lease"><option value="">Choose</option><option value="financing">Financing debt</option><option value="operating">Operating expense</option><option value="none">No material leases</option></select></label><p class="help">Financing leases: align lease investment, new financing, principal, interest and debt. Operating leases: include lease cash costs in normalized operating cash and exclude lease financing from debt/borrowing inputs. Explain adjustments below; the app does not reclassify leases automatically.</p><label>Sources and statement references<textarea id="bridge-source-note" rows="2"></textarea></label><label>Company / ownership scope<textarea id="bridge-scope-note" rows="2" placeholder="Consolidated or parent; treatment of minority and preferred interests"></textarea></label><label>Lease treatment explanation<textarea id="bridge-lease-note" rows="2"></textarea></label><label>Adjustment explanations<textarea id="bridge-adjustment-note" rows="2" placeholder="Explain signed adjustments, or why zero is appropriate"></textarea></label><button id="bridge-apply" type="button" class="quiet">Use reconciled cash flow</button><div id="bridge-result" role="status"></div></details>';
+  for(const key of keys){
+    const [label,help]=definitions[key], row=document.createElement('div');
+    const saved=stockRecord.data.fields[key]?.value;
+    row.innerHTML=`<label for="bridge-${key}">${escapeHtml(label)}</label><input id="bridge-${key}" type="number" step="any" value="${saved==null?'':escapeHtml(key==='tax'?saved*100:saved)}"><p class="help">${escapeHtml(help)}</p>`;
+    wrapper.querySelector('.fields').append(row);
+  }
+  $("cash-helper").append(wrapper);
+  let bridgeVersion=0;
+  wrapper.addEventListener('input',()=>{bridgeVersion++;});
+  $('bridge-apply').onclick=async()=>{
+    const version=inputVersion, submittedBridgeVersion=++bridgeVersion;
+    try{
+      const inputs=Object.fromEntries(keys.map(key=>[key,$('bridge-'+key).value===''?null:Number($('bridge-'+key).value)/(key==='tax'?100:1)]));
+      const basis={period_type:$('bridge-period-type').value,period_end:$('bridge-period-end').value,lease_treatment:$('bridge-lease').value,source_note:$('bridge-source-note').value,scope_note:$('bridge-scope-note').value,lease_note:$('bridge-lease-note').value,adjustment_note:$('bridge-adjustment-note').value};
+      const reconciled=await api('/api/reconcile-cash',{method,inputs,basis});
+      if(version!==inputVersion || submittedBridgeVersion!==bridgeVersion || !wrapper.isConnected)return;
+      $('input-cash_flow').value=reconciled.cash_flow;
+      if(method==='dcf_fcff')$('input-net_debt').value=reconciled.net_debt;
+      const evidence={inputs:reconciled.inputs,reconciliation:reconciled,sources:structuredClone(stockRecord.data.fields),formula:reconciled.steps.map(step=>step.label).join('; ')};
+      rememberDerivation({...evidence,output_field:'cash_flow',value:reconciled.cash_flow});
+      if(method==='dcf_fcff')rememberDerivation({...evidence,output_field:'net_debt',value:reconciled.net_debt});
+      invalidate();
+      $('bridge-result').innerHTML=reconciled.steps.map(step=>`<p>${escapeHtml(step.label)} = <strong>${numeric(step.value)}</strong></p>`).join('')+reconciled.warnings.map(note=>`<p class="warning">${escapeHtml(note)}</p>`).join('');
+      $('scenario-notes').value+='\nCash-flow reconciliation: '+JSON.stringify(basis);
+    }catch(error){if(version===inputVersion && submittedBridgeVersion===bridgeVersion && wrapper.isConnected)$('bridge-result').textContent=error.message;}
+  };
+}

@@ -30,13 +30,16 @@
   control-weakness and going-concern passages. Show excerpts and page references;
   save only selected passages as unresolved review items, preserving file hashes.
   Keyword matches are not accounting conclusions; negation and context need review.
+- [x] Add a structured cash-statement bridge for FCFF and FCFE, explicit interest
+  classification, signed adjustments, financing and ownership claims, with required
+  period/source/lease explanations and a saved, replayable calculation trail.
 
 ## Remaining
 
 - [ ] Reconcile individual dividend payment periods and revised earnings/share bases
   used in trailing-year calculations; period labels alone do not prove comparability.
-- [ ] Structured FCFF/FCFE reconciliation, including lease, financing and ownership
-  consistency; helper calculations currently still need human review.
+- [ ] Validate cash-flow adjustments against company-specific report notes; the
+  structured bridge cannot establish accounting classifications automatically.
 - [ ] Independently reconcile worked examples across company types against filings
   and a separate calculation before relying on their valuation conclusions.
 

@@ -1,5 +1,7 @@
 """Explain input provenance and readiness without pretending to verify financial facts."""
 from datetime import date
+import math
+from backend.cash_flow import reconcile_cash_flow
 
 ASSUMPTIONS = {"growth", "discount_rate", "terminal_growth", "multiple", "discount",
                "required_yield", "cap_rate", "roe", "payout"}
@@ -65,6 +67,18 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
         if derived:
             kind="Calculated from helper inputs"; evidence=derived
             issues.append(f"{key}: review the helper's inputs and source periods")
+            if derived.get('reconciliation'):
+                try:
+                    record=derived['reconciliation']
+                    if record['method']!=method:
+                        raise ValueError('cash-flow method differs from the valuation method')
+                    replay=reconcile_cash_flow(record['method'],record['inputs'],record['basis'])
+                    output='net_debt' if key=='net_debt' else 'cash_flow'
+                    if not math.isclose(replay[output],value,rel_tol=1e-10,abs_tol=1e-8):
+                        raise ValueError('reconciled output differs from the valuation input')
+                    issues.append(f"{key}: reconciliation arithmetic reproduced; source classification, leases and ownership scope still require review")
+                except (ValueError,TypeError,KeyError,OverflowError) as error:
+                    data_issues.append(f"{key}: reconciliation cannot be reproduced: {error}")
             helper_periods=set()
             for helper_key, helper_value in derived.get("inputs", {}).items():
                 if helper_key not in ANNUAL_FIELDS or helper_value is None:

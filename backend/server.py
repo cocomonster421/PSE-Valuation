@@ -21,6 +21,7 @@ from backend.brain import decode as read_brain, encode as encode_brain, stock_pa
 from backend.importer import document_candidates, refresh_candidates
 from backend.review import review_inputs
 from backend.batch_review import review_company
+from backend.cash_flow import reconcile_cash_flow
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = threading.Lock()
@@ -179,6 +180,8 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(payload, dict):
                 raise ValueError("Request must be a JSON object")
             path = urlsplit(self.path).path
+            if path == '/api/reconcile-cash':
+                return self.send(200,reconcile_cash_flow(payload['method'],payload['inputs'],payload['basis']))
             if path=="/api/review":
                 stock=read(stock_path(ROOT,safe_id(payload["ticker"])))
                 return self.send(200,review_inputs(stock,read(ROOT/"policies/catalog.json"),payload["method"],payload["inputs"],derivations=payload.get("derivations",[])))
