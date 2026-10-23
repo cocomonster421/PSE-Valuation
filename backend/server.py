@@ -94,6 +94,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(403, {"error": "Use the localhost address"})
         path = urlsplit(self.path).path
         try:
+            if path == "/api/examples/tel":
+                return self.send(200,read(ROOT / "examples/tel_case.json"))
             if path == "/api/review-all":
                 policy=read(ROOT / "policies/catalog.json")
                 self.validate_policy(policy)

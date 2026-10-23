@@ -4,9 +4,10 @@
 <body>
 <header><h1>Stock Analyzer</h1><button id="refresh-online" class="quiet" disabled>Refresh online</button><button id="check-all-stocks" class="quiet">Check all stocks</button><button id="open-library" class="quiet">Saved analyses</button></header>
 <main>
-<div id="demo-start" class="panel" hidden><button id="try-demo" class="quiet">Try demo</button> <span class="help">Practice with synthetic data. Real-company templates need your data.</span></div>
+<div id="demo-start" class="panel" hidden><button id="try-demo" class="quiet">Try demo</button> <button id="try-tel-case" class="quiet">Open TEL research case</button> <span class="help">Practice with synthetic data. Real-company templates need your data.</span></div>
 <section class="panel selection"><div class="section-title"><span class="step">01</span><h2>Stock</h2></div><label for="stock-search">Search by ticker or company</label><div class="stock-search-row"><input id="stock-search" type="search" placeholder="Ticker or company name" autocomplete="off"><button id="all-stocks" type="button" class="quiet" aria-label="Show all stocks">▾</button></div><div id="search-results" class="search-results"></div><div id="company" hidden></div></section>
 <div id="workspace" hidden>
+<aside id="research-case" class="panel" hidden></aside>
 <div class="work-grid"><div>
 <section class="panel"><div class="section-title"><span class="step">02</span><h2>Valuation method</h2></div><label for="method" class="sr-only">Valuation method</label><select id="method"></select><p id="method-readiness" class="help"></p><label class="confirmation compact"><input id="advanced-methods" type="checkbox"><span>Advanced methods</span></label><details class="field-help"><summary>Method details</summary><p id="recommendation" class="help"></p><p id="method-description" class="help"></p></details></section>
 <section class="panel"><div class="section-title"><span class="step">03</span><h2>Inputs</h2></div><form id="valuation-form"><p id="input-readiness" role="status"></p><details class="field-help"><summary>Data checks</summary><p id="review-summary" role="status"></p><div id="input-checks"></div></details><div id="current-ratios" class="help"></div><div id="fields" class="fields"></div><div id="cash-helper"></div>

@@ -46,6 +46,10 @@ in [a separate case file](examples/tel_case.json). An unresolved annual EPS conf
 is documented; the earnings ratios remain provisional. Real-company working templates
 remain blank. No reports are redistributed.
 
+In the app, click **Open TEL research case**, review the dated inputs, then
+**Calculate fair value**. This leaves your company data unchanged and includes
+the source qualifications in saved analysis notes.
+
 Reproduce the case with Python alone:
 
 ```sh

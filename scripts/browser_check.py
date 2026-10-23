@@ -24,7 +24,7 @@ def main():
     screenshots.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as temporary:
         test_root = Path(temporary)
-        for folder in ["frontend", "brain", "policies"]:
+        for folder in ["frontend", "brain", "policies", "examples"]:
             shutil.copytree(ROOT / folder, test_root / folder)
         (test_root / "scenarios").mkdir()
         # Use invented figures so a clean public checkout needs no private research.
@@ -294,6 +294,25 @@ def main():
                 assert len(demo_saved['derivations'])==2
                 assert demo_saved['input_review']['fields']
                 assert math.isclose(demo_saved['result']['steps'][-1]['value'],48)
+                original_tel=(test_root/'brain/TEL.toml').read_bytes()
+                page.locator('#try-tel-case').click()
+                expect(page.locator('#input-dividend')).to_have_value('92')
+                expect(page.locator('#input-price')).to_have_value('1190')
+                expect(page.locator('#research-case')).to_contain_text('138.63')
+                expect(page.locator('#research-case')).to_contain_text('132.38')
+                assert not page.locator('#confirmed').is_checked()
+                page.locator('#confirmed').check()
+                page.get_by_role('button',name='Calculate fair value').click()
+                expect(page.locator('.fair-value')).to_contain_text('844.73')
+                expect(page.locator('#sensitivity-results tbody tr')).to_have_count(3)
+                with page.expect_response(lambda r:r.url.endswith('/api/scenarios') and r.request.method=='POST') as research_save:
+                    page.locator('#save-scenario').click()
+                assert research_save.value.status==201
+                research_saved=next(json.loads(p.read_text(encoding='utf-8')) for p in (test_root/'scenarios').glob('*.json') if json.loads(p.read_text(encoding='utf-8'))['name']=='TEL research case · 2026-10-22')
+                assert 'annual_source_comparison' in research_saved['notes']
+                assert (test_root/'brain/TEL.toml').read_bytes()==original_tel
+                page.locator('#try-demo').click()
+                expect(page.locator('#research-case')).to_be_hidden()
                 # Reconcile the same annual cash statement under both cash-flow models.
                 page.locator('#advanced-methods').check()
                 for model in ('dcf_fcff','dcf_fcfe'):

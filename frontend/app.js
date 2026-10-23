@@ -116,6 +116,7 @@ function renderSearch() {
 }
 async function chooseStock(ticker) {
   const request = ++stockRequest;
+  $("research-case").hidden=true;
   invalidate();
   $("workspace").hidden = true;
   const loaded = await api(`/api/stocks/${encodeURIComponent(ticker)}`);
@@ -711,3 +712,25 @@ function renderEpsEvidence(fieldset, original) {
   };
   fieldset.append(panel);
 }
+
+$('try-tel-case').onclick=async()=>{
+  const button=$('try-tel-case');button.disabled=true;
+  try {
+    const startRequest=stockRequest;
+    const example=await api('/api/examples/tel');
+    if(startRequest!==stockRequest)return;
+    const expectedRequest=stockRequest+1;
+    await chooseStock('TEL');
+    if(stockRequest!==expectedRequest)return;
+    const windowStart=String(Number(example.analysis_date.slice(0,4))-1)+example.analysis_date.slice(4);
+    const dividend=example.dividend_events.filter(e=>e.share_class==='common' && e.kind==='regular' && e.payment_date<=example.analysis_date && e.payment_date>windowStart).reduce((total,e)=>total+e.amount_per_share,0);
+    renderMethods('ddm');
+    renderFields({dividend,discount_rate:example.assumptions.discount_rate,terminal_growth:example.assumptions.terminal_growth,price:example.price.value});
+    $('method-readiness').textContent='Dated research inputs loaded. Review assumptions, then calculate.';
+    $('scenario-name').value='TEL research case · '+example.analysis_date;
+    $('scenario-notes').value=JSON.stringify({research_case:example.title,analysis_date:example.analysis_date,price:example.price,assumptions:example.assumptions,dividend_events:example.dividend_events,source_review:example.source_review,annual_source_comparison:example.annual_source_comparison},null,2);
+    const panel=$('research-case');panel.hidden=false;
+    panel.innerHTML=`<h2>TEL research case · ${escapeHtml(example.analysis_date)}</h2><p class="warning">Illustrative dividend scenario, not a verified price target. ${escapeHtml(example.source_review.qualification)}</p><p>Reference price: ${peso(example.price.value)} · ${escapeHtml(example.price.as_of)}. ${escapeHtml(example.price.kind)}.</p><details><summary>Sources and assumptions</summary><p>${escapeHtml(example.assumptions.dividend_basis)}</p><p>${escapeHtml(example.assumptions.discount_rate_basis)}</p><p>${escapeHtml(example.assumptions.growth_basis)}</p>${example.dividend_events.map(e=>`<p>${escapeHtml(e.payment_date)} · ${peso(e.amount_per_share)} per common share · ${safeLink(e.source_url,'Dividend declaration ↗')}</p>`).join('')}<p>${safeLink(example.annual_source_comparison.source_url,'Annual filing ↗')} · ${safeLink(example.source_review.disclosure_url,'Reporting qualification ↗')}</p></details><p class="help">These editable scenario inputs do not replace your company brain. Sources and qualifications are included in the analysis notes when you save.</p>`;
+    status('TEL case loaded. Review inputs before calculating.');
+  }catch(error){status(error.message);}finally{button.disabled=false;}
+};
