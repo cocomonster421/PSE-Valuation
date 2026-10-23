@@ -85,6 +85,22 @@ class LocalAPITests(unittest.TestCase):
             self.assertEqual(reloaded['data']['reports']['review_status'],'unresolved' if state=='unresolved' else 'unreviewed')
             self.assertEqual(reloaded['data']['reports']['review_note'],'Existing review')
 
+    def test_sotp_component_baseline_roundtrip_and_review_reset(self):
+        from test_components import component
+        for state in ('reviewed','unresolved'):
+            stock={'ticker':'PARTS','name':'Component fixture','industry':'Test','currency':'PHP',
+                   'reports':{'review_status':state,'review_note':'Prior note'},
+                   'fields':{'asset_value':{'value':None}}}
+            server.write(server.ROOT/'brain/PARTS.toml',stock)
+            _,record=self.request('/api/stocks/PARTS')
+            record['data']['fields']['asset_value'].update(value=480,as_of='2025-12-31',
+                note='Synthetic component bridge',sotp_components={'one':component()})
+            code,saved=self.request('/api/stocks/PARTS',record)
+            self.assertEqual(code,200,saved)
+            _,reloaded=self.request('/api/stocks/PARTS')
+            self.assertEqual(reloaded['data']['fields']['asset_value']['sotp_components']['one'],component())
+            self.assertEqual(reloaded['data']['reports']['review_status'],'unresolved' if state=='unresolved' else 'unreviewed')
+
     def test_calculation_and_confirmation(self):
         body = {"method": "ddm", "inputs": {"dividend": 10, "discount_rate": .12, "terminal_growth": .02}}
         self.assertEqual(self.request("/api/calculate", body)[0], 400)

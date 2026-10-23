@@ -2,6 +2,7 @@ import unittest
 from backend.components import reconcile_components
 from backend.review import review_inputs
 from backend.catalog import initial_policy
+from backend.batch_review import review_company
 
 
 def component(**changes):
@@ -38,3 +39,15 @@ class ComponentTests(unittest.TestCase):
         record['components'][0]['value']=2000
         checked=review_inputs({},initial_policy(),'sotp',inputs,derivations=evidence)
         self.assertTrue(any('cannot be reproduced' in x for x in checked['issues']))
+
+    def test_all_stock_review_replays_saved_component_total(self):
+        stock={'ticker':'SYNTH','name':'Synthetic holding company','archetype':'CONGLOMERATE',
+               'fields':{'asset_value':{'value':480,'sotp_components':{'one':component()}},
+                         'liabilities':{'value':80},'shares':{'value':10}},
+               'models':{'sotp':{'discount':.1}}}
+        row=next(r for r in review_company(stock,initial_policy())['methods'] if r['method']=='sotp')
+        self.assertEqual(row['fair_value'],36)
+        self.assertFalse(any('cannot be reproduced' in x for x in row['review']['issues']))
+        stock['fields']['asset_value']['sotp_components']['one']['ownership']=.5
+        row=next(r for r in review_company(stock,initial_policy())['methods'] if r['method']=='sotp')
+        self.assertTrue(any('saved asset total differs' in x for x in row['review']['issues']))

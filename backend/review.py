@@ -214,6 +214,17 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
             data_issues.extend(period_issues(key, source))
             if key == "eps": data_issues.extend(eps_bridge_issues(source, today))
             if key == "cash_flow": data_issues.extend(saved_cash_flow_issues(source, method))
+            if key=='asset_value' and method=='sotp':
+                try:
+                    components=source.get('sotp_components')
+                    if not isinstance(components,dict) or not components:
+                        raise ValueError('saved component evidence is missing; use Add up owned businesses and save the baseline')
+                    replay=reconcile_components(list(components.values()))
+                    if not math.isclose(replay['asset_value'],value,rel_tol=1e-10,abs_tol=1e-8):
+                        raise ValueError('saved asset total differs from the component sum')
+                    data_issues.extend(replay['warnings'])
+                except (ValueError,TypeError,KeyError,OverflowError) as error:
+                    data_issues.append(f'asset_value: saved SOTP reconciliation cannot be reproduced: {error}')
             if source.get("status")!="reviewed": issues.append(f"{key}: saved figure needs review")
             period=source.get("period_end")
             if period and key!="price": periods.add(period[:10])

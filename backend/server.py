@@ -372,6 +372,13 @@ class Handler(BaseHTTPRequestHandler):
                     if payload.get("revision") != revision(previous):
                         return self.send(409, {"error": "This file changed. Reload it before saving to avoid overwriting another edit."})
                     if path.startswith('/api/stocks/'):
+                        old_assets=previous.get('fields',{}).get('asset_value',{})
+                        new_assets=data.get('fields',{}).get('asset_value',{})
+                        if old_assets!=new_assets and (old_assets.get('sotp_components') or new_assets.get('sotp_components')):
+                            reports=data.setdefault('reports',{})
+                            if reports.get('review_status')!='unresolved':
+                                reports['review_status']='unreviewed'
+                            reports['invalidation_reason']='Saved SOTP total or components changed; review valuations, ownership and parent claims again.'
                         cash_keys=('fcff_cash_flow','fcfe_cash_flow')
                         if any(previous.get('fields',{}).get(k) != data.get('fields',{}).get(k) for k in cash_keys):
                             reports=data.setdefault('reports',{})

@@ -49,7 +49,7 @@
 
 ## Remaining
 
-As of 23 October 2026, the regression suite has 96 passing tests. This establishes
+As of 23 October 2026, the regression suite has 98 passing tests. This establishes
 tested software behavior, not the accuracy of every company's fair value.
 
 - [x] Reproduce the BDO bank example using justified P/B, dividend discounting and
@@ -68,6 +68,8 @@ tested software behavior, not the accuracy of every company's fair value.
 - [x] Add an editable SOTP component table with explicit enterprise/equity/owned
   value types. Reject double debt or ownership adjustments, save rows with analyses,
   restore them for editing, and replay their arithmetic during input review.
+- [x] Save SOTP components in the editable company brain. All-stock checks replay
+  the saved total; changed totals or component evidence reset reporting review.
 
 - [ ] Reconcile individual dividend payment periods and revised earnings/share bases
   used in trailing-year calculations; period labels alone do not prove comparability.

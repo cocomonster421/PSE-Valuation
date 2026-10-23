@@ -35,7 +35,16 @@ component's value type, value in full pesos, owned percentage, valuation date an
 source explanation. **Use component total** fills the owned-asset total. Enter
 remaining parent claims, common shares and the holding discount separately.
 Saving the analysis retains the rows; loading its inputs restores them for editing.
-The helper does not change the company brain or supply missing AC valuations.
+After calculating the sum, **Save component baseline and evidence** explicitly
+replaces the owned-asset total and stores the component rows in the company brain.
+Parent claims, shares and discount are separate and are not saved by this action.
+The helper does not supply missing AC valuations.
+
+The saved rows live under `sources.asset_value.sotp_components` in the TOML file.
+Reopening SOTP restores them, and **Check all stocks** replays their sum. A total
+that differs from the saved components is flagged. Saving changed evidence resets
+reporting review without clearing unresolved disclosures. Arithmetic agreement
+still requires review of valuation methods, ownership and parent claims.
 
 For a synthetic check, enterprise value 1,000 minus subsidiary net claims 200,
 owned 60%, contributes 480. Entering equity value 800 at 60% gives the same result.

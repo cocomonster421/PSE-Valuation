@@ -410,6 +410,20 @@ def main():
                 page.locator('#component-helper summary').click()
                 expect(page.locator('#component-rows [data-component="name"]')).to_have_value('Synthetic business')
                 expect(page.locator('#component-rows [data-component="ownership"]')).to_have_value('60')
+                page.locator('#component-apply').click()
+                expect(page.locator('#component-save')).to_be_enabled()
+                with page.expect_response(lambda response: response.url.endswith('/api/stocks/AC') and response.request.method=='POST') as component_baseline:
+                    page.locator('#component-save').click()
+                assert component_baseline.value.status==200,component_baseline.value.text()
+                expect(page.locator('#component-result')).to_contain_text('baseline and evidence saved')
+                persisted=server.read(test_root/'brain/AC.toml')
+                assert persisted['fields']['asset_value']['sotp_components']['component_1']['ownership']==.6
+                assert persisted['reports']['review_status']=='unreviewed'
+                page.locator('#method').select_option('pe')
+                page.locator('#method').select_option('sotp')
+                page.locator('#component-helper summary').click()
+                expect(page.locator('#component-rows [data-component="name"]')).to_have_value('Synthetic business')
+                expect(page.locator('#component-save')).to_be_disabled()
                 assert not errors,errors
                 browser.close()
                 print("PASS: TEL DDM/DCF, beta/WACC, saved sensitivity, export/load, input invalidation, baseline edit/reload, policy edit, BDO/REIT recommendations, mobile width, zero external requests and zero page errors")

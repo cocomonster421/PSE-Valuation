@@ -791,12 +791,15 @@ $('try-bdo-case').onclick=async()=>{
   }catch(error){status(error.message);}finally{button.disabled=false;}
 };
 
-function renderComponentHelper(saved=[]){
+function renderComponentHelper(saved){
+  saved=saved || Object.values(stockRecord.data.fields.asset_value?.sotp_components || {});
   const panel=document.createElement('details');panel.id='component-helper';panel.className='advanced';
-  panel.innerHTML='<summary>Add up owned businesses</summary><p class="help">Enter full pesos. Enterprise value needs subsidiary net claims deducted first. Equity value already includes that deduction. Already-owned equity also includes your ownership percentage. Save the analysis to retain these rows; the company brain is not changed.</p><div id="component-rows"></div><button type="button" id="component-add" class="quiet">Add business</button> <button type="button" id="component-apply" class="quiet">Use component total</button><div id="component-result" role="status"></div>';
+  panel.innerHTML='<summary>Add up owned businesses</summary><p class="help">Enter full pesos. Enterprise value needs subsidiary net claims deducted first. Equity value already includes that deduction. Already-owned equity also includes your ownership percentage. Save the analysis to retain scenario rows. Save component baseline and evidence explicitly replaces the owned-asset total in the company brain; parent claims remain separate.</p><div id="component-rows"></div><button type="button" id="component-add" class="quiet">Add business</button> <button type="button" id="component-apply" class="quiet">Use component total</button><div id="component-result" role="status"></div>';
   $('cash-helper').append(panel);
-  let version=0;
-  panel.addEventListener('input',()=>{version++;});
+  const save=document.createElement('button');save.id='component-save';save.type='button';save.className='quiet';save.textContent='Save component baseline and evidence';save.disabled=true;panel.append(save);
+  let version=0, latest=null;
+  function changed(){version++;latest=null;save.disabled=true;}
+  panel.addEventListener('input',changed);
   function addRow(item={}){
     const row=document.createElement('fieldset');row.className='fields';
     row.innerHTML='<legend>Business or asset</legend>';
@@ -815,9 +818,9 @@ function renderComponentHelper(saved=[]){
       debt.disabled=select.value!=='enterprise';if(debt.disabled)debt.value='0';
       owned.disabled=select.value==='attributable';if(owned.disabled)owned.value='100';
     }
-    select.onchange=()=>{version++;scope();};scope();
-    const remove=document.createElement('button');remove.type='button';remove.className='quiet';remove.textContent='Remove business';remove.onclick=()=>{row.remove();version++;};row.append(remove);
-    $('component-rows').append(row);version++;
+    select.onchange=()=>{changed();scope();};scope();
+    const remove=document.createElement('button');remove.type='button';remove.className='quiet';remove.textContent='Remove business';remove.onclick=()=>{row.remove();changed();};row.append(remove);
+    $('component-rows').append(row);changed();
   }
   for(const item of saved.length?saved:[{}])addRow(item);
   $('component-add').onclick=()=>addRow();
@@ -827,10 +830,26 @@ function renderComponentHelper(saved=[]){
       const components=[...$('component-rows').children].map(row=>Object.fromEntries([...row.querySelectorAll('[data-component]')].map(input=>[input.dataset.component,input.type==='number'?(input.value===''?null:Number(input.value)/(input.dataset.component==='ownership'?100:1)):input.value])));
       const result=await api('/api/reconcile-components',{components});
       if(!panel.isConnected || submitted!==version || valuationVersion!==inputVersion)return;
+      latest=result;save.disabled=false;
       $('input-asset_value').value=result.asset_value;
       rememberDerivation({output_field:'asset_value',value:result.asset_value,component_reconciliation:result,formula:'Sum of component equity values multiplied by ownership'});
       invalidate();
       $('component-result').innerHTML=result.steps.map(s=>`<p>${escapeHtml(s.name)}: ${escapeHtml(s.formula)} = ${peso(s.attributable_value)}</p>`).join('')+result.warnings.map(w=>`<p class="warning">${escapeHtml(w)}</p>`).join('');
     }catch(error){if(panel.isConnected && submitted===version)$('component-result').textContent=error.message;}
+  };
+  save.onclick=async()=>{
+    if(!latest)return;
+    const record=structuredClone(latest),data=structuredClone(stockRecord.data),ticker=data.ticker;
+    const dates=record.components.map(c=>c.as_of).sort();
+    data.fields.asset_value={value:record.asset_value,status:'needs_review',unit:'PHP',period_type:'point_in_time',
+      period_end:dates.at(-1),as_of:dates.at(-1),note:'Sum of saved SOTP components; inspect individual sources, dates and ownership. Parent claims are separate.',
+      sotp_components:Object.fromEntries(record.components.map((c,i)=>['component_'+(i+1),c]))};
+    save.disabled=true;
+    try{
+      const stored=await api(`/api/stocks/${ticker}`,{data,revision:stockRecord.revision});
+      if(!panel.isConnected || stockRecord.data.ticker!==ticker)return;
+      stockRecord=stored;invalidate();
+      $('component-result').textContent='Component baseline and evidence saved. Review required. Parent claims, shares and discount were not saved.';
+    }catch(error){if(panel.isConnected){$('component-result').textContent=error.message;save.disabled=!latest;}}
   };
 }
