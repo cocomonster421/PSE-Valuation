@@ -16,6 +16,37 @@ class ImporterTests(unittest.TestCase):
         self.assertEqual(rows['eps']['period_type'],'ttm')
         self.assertEqual(rows['bvps']['period_type'],'point_in_time')
 
+    def test_ttm_component_evidence_survives_brain_roundtrip(self):
+        from backend.brain import encode, decode
+        row=next(r for r in edge_financials(HTML,"official") if r['key']=='eps')
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'TEST.toml'
+            path.write_text(encode({'ticker':'TEST','fields':{'eps':row}}),encoding='utf-8')
+            self.assertEqual(decode(path)['fields']['eps']['eps_bridge'],row['eps_bridge'])
+
+    def test_ttm_review_requires_comparability_and_replays_components(self):
+        from datetime import date
+        from backend.review import eps_bridge_issues
+        row=next(r for r in edge_financials(HTML,"official") if r['key']=='eps')
+        today=date(2026,7,1)
+        self.assertTrue(any('provisional' in i for i in eps_bridge_issues(row,today)))
+        row['eps_bridge'].update(review_status='reconciled',reviewed_on='2026-07-01',
+                                review_note='Synthetic fixture: common share basis unchanged; no revisions.')
+        self.assertEqual(eps_bridge_issues(row,today),[])
+        row['eps_bridge']['annual_eps']=99
+        self.assertTrue(any('arithmetic' in i for i in eps_bridge_issues(row,today)))
+        row['eps_bridge']['annual_eps']=4.77
+        row['eps_bridge']['prior_ytd_end']='2024-06-30'
+        self.assertTrue(any('periods' in i for i in eps_bridge_issues(row,today)))
+
+    def test_ttm_legacy_and_expired_evidence_stay_flagged(self):
+        from datetime import date
+        from backend.review import eps_bridge_issues
+        self.assertTrue(eps_bridge_issues({'period_type':'ttm'},date(2026,7,1)))
+        row=next(r for r in edge_financials(HTML,"official") if r['key']=='eps')
+        row['eps_bridge'].update(review_status='reconciled',reviewed_on='2025-01-01',review_note='Old review')
+        self.assertTrue(eps_bridge_issues(row,date(2026,7,1)))
+
     def test_nonmatching_periods_do_not_create_ttm(self):
         html=HTML.replace("Jun 30, 2026","Jun 30, 2027")
         rows={r["key"]:r for r in edge_financials(html,"official")}

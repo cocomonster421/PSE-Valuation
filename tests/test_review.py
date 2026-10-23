@@ -12,7 +12,7 @@ class ReviewTests(unittest.TestCase):
             with self.subTest(period=period):
                 stock['fields']['eps']['period_type']=period
                 checked=review_inputs(stock,initial_policy(),'pe',dict(eps=5,multiple=10),date(2026,10,22))
-                self.assertEqual(checked['data_status'],'Reviewed inputs' if period in {'annual','ttm'} else 'Needs review')
+                self.assertEqual(checked['data_status'],'Reviewed inputs' if period == 'annual' else 'Needs review')
 
     def test_helper_cannot_hide_quarterly_source_or_override(self):
         source={'value':100,'period_type':'quarter','period_end':'2026-06-30'}

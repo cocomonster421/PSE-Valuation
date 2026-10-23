@@ -34,6 +34,10 @@
   classification, signed adjustments, financing and ownership claims, with required
   period/source/lease explanations and a saved, replayable calculation trail.
 
+- [x] Preserve imported trailing-EPS components and dates in the company brain;
+  replay their arithmetic and period alignment in offline reviews. Flag missing
+  component evidence and undated or expired comparability reviews.
+
 ## Remaining
 
 - [ ] Reconcile individual dividend payment periods and revised earnings/share bases
@@ -59,3 +63,23 @@ Offline checks cannot discover new disclosures that have not been downloaded or
 recorded. Blank company templates remain blank; these checks do not fabricate data.
 The arithmetic can be tested independently, but forecast confidence must be judged
 company by company using evidence, sensitivity and model suitability.
+
+## Trailing EPS evidence
+
+An imported calendar-year EPS bridge is saved under `sources.eps.eps_bridge` in
+its company TOML file. The three EPS values and period ends remain individually
+editable. The offline check reproduces annual + current YTD - prior YTD and
+checks date alignment. Older TTM figures without this evidence are flagged.
+
+A correct sum does not establish a comparable share basis. IAS 33 uses earnings
+attributable to ordinary shareholders and weighted-average shares; changes in
+share counts or revised earnings can invalidate simple addition of per-share
+figures. See [IAS 33](https://www.ifrs.org/issued-standards/list-of-standards/ias-33-earnings-per-share.html/).
+
+After checking the underlying statements, record `review_status = "reconciled"`,
+`reviewed_on = "YYYY-MM-DD"` and a specific `review_note` within that bridge.
+Explain revisions, corporate actions and denominator comparability. This records
+user review, not independent verification. If the bases differ, reconstruct EPS
+from comparable earnings and an appropriate trailing-period share denominator;
+do not mark an incompatible bridge reconciled. New imports reset the bridge
+review. The general reporting-review check still applies separately.

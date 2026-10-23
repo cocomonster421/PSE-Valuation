@@ -21,6 +21,41 @@ def period_issues(key, source):
     return []
 
 
+
+def eps_bridge_issues(source, today):
+    if source.get("period_type") != "ttm":
+        return []
+    bridge = source.get("eps_bridge")
+    if not isinstance(bridge, dict):
+        return ["eps: trailing-year component evidence is missing; reconcile earnings and weighted-average share bases"]
+    issues = []
+    try:
+        values = [bridge[k] for k in ("annual_eps", "current_ytd_eps", "prior_ytd_eps")]
+        if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in values):
+            raise ValueError("components must be finite numbers")
+        if not math.isclose(values[0]+values[1]-values[2], source["value"], rel_tol=1e-10, abs_tol=1e-8):
+            raise ValueError("component arithmetic differs from saved EPS")
+        annual = date.fromisoformat(bridge["annual_end"])
+        current = date.fromisoformat(bridge["current_ytd_end"])
+        prior = date.fromisoformat(bridge["prior_ytd_end"])
+        if not ((annual.month, annual.day)==(12,31) and current.year==annual.year+1
+                and (current.month,current.day) in {(3,31),(6,30),(9,30)}
+                and prior==current.replace(year=current.year-1)
+                and source.get("period_end")==current.isoformat()):
+            raise ValueError("component periods do not form the supported calendar-year bridge")
+    except (KeyError, TypeError, ValueError, OverflowError) as error:
+        issues.append(f"eps: trailing-year bridge cannot be reproduced: {error}")
+    try:
+        age = (today-date.fromisoformat(bridge.get("reviewed_on", ""))).days
+        reconciled = (bridge.get("review_status")=="reconciled" and 0<=age<=365
+                      and bool(bridge.get("review_note", "").strip()))
+    except (TypeError, ValueError, AttributeError):
+        reconciled = False
+    if not reconciled:
+        issues.append("eps: annual + current YTD − prior YTD is provisional until revised earnings, corporate actions and weighted-average share bases are reconciled with a dated explanation")
+    return issues
+
+
 def documented(evidence, today):
     try:
         dated = date.fromisoformat(evidence.get("as_of", "")[:10])
@@ -97,6 +132,7 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
         elif source.get("value")==value:
             kind="Saved company figure"; evidence=dict(source)
             data_issues.extend(period_issues(key, source))
+            if key == "eps": data_issues.extend(eps_bridge_issues(source, today))
             if source.get("status")!="reviewed": issues.append(f"{key}: saved figure needs review")
             period=source.get("period_end")
             if period and key!="price": periods.add(period[:10])

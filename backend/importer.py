@@ -61,6 +61,14 @@ def edge_financials(html, source):
             eps_type="ttm"
             note=f"Trailing-12-month EPS = annual EPS {annual_eps} + current YTD EPS {q_eps[2]} − prior YTD EPS {q_eps[3]}. Review accounting/share-basis comparability."
     add("eps",eps,period,note,eps_type)
+    if eps_type == "ttm":
+        candidates[-1]["eps_bridge"] = {
+            "annual_eps": annual_eps, "current_ytd_eps": q_eps[2], "prior_ytd_eps": q_eps[3],
+            "annual_end": annual["date"], "current_ytd_end": quarterly["date"],
+            "prior_ytd_end": quarterly["date"].replace(str(q.year), str(q.year-1), 1),
+            "review_status": "unreviewed", "review_note": "", "reviewed_on": "",
+            "basis": "Basic EPS; calendar-year annual plus current YTD minus prior YTD",
+        }
     latest=quarterly if quarterly["date"] and quarterly["date"]>=annual["date"] and "PHP" in quarterly["unit"].upper() else annual
     add("bvps",latest["rows"].get("Book Value Per Share",[None])[0],latest["date"],"Reported book value per share from PSE EDGE; no monetary-unit scaling applied to per-share values.","point_in_time")
     return candidates
