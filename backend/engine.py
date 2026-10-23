@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 
 
-ENGINE_VERSION = "1.1.1"
+ENGINE_VERSION = "1.1.2"
 
 
 def readable(value):
@@ -97,6 +97,12 @@ def calculate(method: str, inputs: dict) -> dict:
             raise ValueError("Sustainable ROE must exceed terminal growth for justified P/B")
         value = number("bvps", positive=True) * multiple
         steps.append({"label": "Justified P/B = (ROE − growth) / (cost of equity − growth)", "value": multiple})
+        if roe > 0:
+            implied_payout = 1 - terminal / roe
+            modeled_distribution = inputs['bvps'] * (roe - terminal)
+            steps.append({"label": "Implied payout = 1 − Long-run growth ÷ Sustainable return on equity", "value": implied_payout})
+            steps.append({"label": "Next-year modeled distribution = Book value per share × (Sustainable return on equity − Long-run growth)", "value": modeled_distribution})
+            warnings.append(f"This model requires a payout of {implied_payout:.2%}, or {readable(modeled_distribution)} per share next year. Compare with dividend policy, other distributions and capital needs; this is not a declared dividend.")
     elif method == "residual_income":
         book = number("bvps", positive=True)
         roe = number("roe")

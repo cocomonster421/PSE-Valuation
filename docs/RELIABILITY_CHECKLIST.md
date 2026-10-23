@@ -49,12 +49,16 @@
 
 ## Remaining
 
-As of 23 October 2026, the regression suite has 89 passing tests. This establishes
+As of 23 October 2026, the regression suite has 92 passing tests. This establishes
 tested software behavior, not the accuracy of every company's fair value.
 
 - [x] Reproduce the BDO bank example using justified P/B, dividend discounting and
   residual income under consistent assumptions. See [the BDO study](BDO_CASE_STUDY.md).
   Agreement is a model consistency check, not independent forecast evidence.
+- [x] Expose implied distributions in justified P/B and compare bank-model payouts
+  with saved annual/TTM cash dividends in offline reviews. Missing or quarterly
+  dividends are not automatically annualized. Differences require period, capital
+  and distribution-scope review; they are not automatic valuation corrections.
 - [x] Separate parent and consolidated debt/equity in the
   [AC source worksheet](AC_SCOPE_REVIEW.md). Its replay returns no fair value
   because component values, remaining claims and matched common shares are missing.

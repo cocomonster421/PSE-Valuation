@@ -321,6 +321,8 @@ def main():
                 page.locator('#confirmed').check()
                 page.get_by_role('button',name='Calculate fair value').click()
                 expect(page.locator('.fair-value')).to_contain_text('145.48')
+                expect(page.locator('#result')).to_contain_text('not a declared dividend')
+                expect(page.locator('#result')).to_contain_text('Next-year modeled distribution')
                 assert 'property dividend' in page.locator('#scenario-notes').input_value()
                 with page.expect_response(lambda response: response.url.endswith('/api/scenarios') and response.request.method=='POST') as bdo_save:
                     page.locator('#save-scenario').click()

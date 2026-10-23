@@ -104,6 +104,34 @@ def saved_cash_flow_issues(source, method):
     return ['cash_flow: saved reconciliation arithmetic reproduced; source classification, leases, ownership and sustainable reinvestment still require review']
 
 
+def distribution_check(stock, method, inputs):
+    """Compare modeled first-year distributions with a saved historical cash input."""
+    if method not in {'justified_pb', 'residual_income'}:
+        return None
+    required=('bvps','roe','terminal_growth') if method=='justified_pb' else ('bvps','roe','payout')
+    if any(isinstance(inputs.get(k),bool) or not isinstance(inputs.get(k),(int,float))
+           or not math.isfinite(inputs[k]) for k in required):
+        return None
+    if inputs['bvps']<=0 or inputs['roe']<=0:
+        return None
+    payout=1-inputs['terminal_growth']/inputs['roe'] if method=='justified_pb' else inputs['payout']
+    modeled=inputs['bvps']*inputs['roe']*payout
+    if not math.isfinite(modeled):
+        return None
+    source=stock.get('fields',{}).get('dividend',{})
+    dividend=source.get('value')
+    comparable=(not isinstance(dividend,bool) and isinstance(dividend,(int,float))
+                and math.isfinite(dividend) and dividend>=0
+                and source.get('unit','PHP/share')=='PHP/share'
+                and source.get('period_type') in {'annual','ttm'})
+    return dict(modeled_payout=payout,modeled_next_distribution=modeled,
+                saved_annual_dividend=dividend if comparable else None,
+                dividend_evidence=dict(source),
+                note=(f"Payout check: next-year modeled distribution is {modeled:,.4f} per share ({payout:.2%} payout). "
+                      +(f"Saved annual cash dividend is {dividend:,.4f}; periods and distribution scope differ, so this is not a like-for-like payout test. " if comparable else "No annual/TTM cash dividend is available for comparison. ")
+                      +"Reconcile regular/special dividends, other distributions and capital needs; model agreement does not establish feasible payouts."))
+
+
 def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
     today=today or date.today()
     missing=[]; issues=[]; audit=[]; periods=set(); unsupported=[]; data_issues=[]
@@ -205,6 +233,8 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
             except (ValueError,TypeError): issues.append(f"{key}: invalid source date")
         audit.append({"field":key,"label":policy["fields"][key]["label"],"value":value,"unit":policy["fields"][key]["unit"],"kind":kind,"evidence":evidence})
     if len(periods)>1: issues.append("Inputs mix financial periods: "+", ".join(sorted(periods))+". Confirm they are comparable.")
+    payout_check=distribution_check(stock,method,inputs)
+    if payout_check: issues.append(payout_check['note'])
     issues = list(dict.fromkeys(data_issues + issues))
     # Documentation is not a certification; warnings survive input confirmation.
     data_warnings = data_issues or [s for s in issues if any(term in s for term in
@@ -213,5 +243,6 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
             "data_status":"Missing data" if missing else "Needs review" if data_warnings else "Reviewed inputs",
             "assumption_status":"Illustrative scenario" if unsupported else "Documented assumptions (not independently verified)",
             "unsupported_assumptions":unsupported, "reporting_status":report_status,
+            "distribution_check":payout_check,
             "missing":missing,"issues":issues,"fields":audit,"checked_on":today.isoformat(),
             "note":"Confirmation acknowledges inputs; it does not clear warnings. Offline checks cannot discover disclosures absent from local records. Documentation does not certify accuracy or forecast quality."}
