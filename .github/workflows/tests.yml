@@ -29,6 +29,10 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Replay TEL case study
         run: python scripts/replay_tel_case.py
+      - name: Replay BDO model consistency example
+        run: python scripts/replay_bdo_case.py
+      - name: Check AC ownership and claims worksheet
+        run: python scripts/replay_ac_scope.py
       - name: Check JavaScript syntax
         run: node --check frontend/app.js
       - name: Build source package

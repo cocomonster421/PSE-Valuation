@@ -45,12 +45,32 @@
 
 ## Remaining
 
+As of 23 October 2026, the regression suite has 86 passing tests. This establishes
+tested software behavior, not the accuracy of every company's fair value.
+
+- [x] Reproduce the BDO bank example using justified P/B, dividend discounting and
+  residual income under consistent assumptions. See [the BDO study](BDO_CASE_STUDY.md).
+  Agreement is a model consistency check, not independent forecast evidence.
+- [x] Separate parent and consolidated debt/equity in the
+  [AC source worksheet](AC_SCOPE_REVIEW.md). Its replay returns no fair value
+  because component values, remaining claims and matched common shares are missing.
+
 - [ ] Reconcile individual dividend payment periods and revised earnings/share bases
   used in trailing-year calculations; period labels alone do not prove comparability.
 - [ ] Validate cash-flow adjustments against company-specific report notes; the
   structured bridge cannot establish accounting classifications automatically.
 - [ ] Independently reconcile worked examples across company types against filings
   and a separate calculation before relying on their valuation conclusions.
+- [ ] Complete AC's attributable component values, remaining parent claims and
+  matched common shares; justify the holding discount without double-counting debt.
+- [ ] Support the worked examples' required returns and forecasts with dated
+  evidence and a reasoned sensitivity range. Agreement with market price is not
+  an acceptance criterion.
+
+The next milestone is one complete, report-reconciled cash-flow case, followed by
+the completed bank and holding-company research. Each needs reproducible source
+inputs, supported assumptions and an independent calculation. No single percentage
+can summarize readiness across blank templates, reviewed figures and forecasts.
 
 ## How to record evidence
 

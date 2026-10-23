@@ -17,6 +17,7 @@ calculation backend, a JavaScript interface, report-import review and regression
 
 [Read the TEL research case](docs/TEL_CASE_STUDY.md) ·
 [Inspect the BDO bank-model example](docs/BDO_CASE_STUDY.md) ·
+[Review AC ownership and claims](docs/AC_SCOPE_REVIEW.md) ·
 [See test coverage](docs/VERIFICATION.md) ·
 [Run locally](#getting-started)
 

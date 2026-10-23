@@ -1,0 +1,39 @@
+{
+  "ticker": "AC",
+  "reviewed_on": "2026-10-23",
+  "financial_period_end": "2025-12-31",
+  "status": "Incomplete SOTP source reconciliation; no fair value",
+  "sources": {
+    "annual_report": {
+      "url": "https://ayala.com/app/uploads/2026/04/Ayala-Corporation-2025-Integrated-Report.pdf",
+      "sha256": "0c27b131b4005dd5eba45c40804131455ca1e0feac643a9bff98ad4715fe1887",
+      "pdf_page": 75,
+      "printed_pages": "146-147",
+      "verification": "Text extraction and rendered-page inspection"
+    },
+    "financial_summary": "https://edge.pse.com.ph/companyPage/financial_reports_view.do?cmpy_id=57"
+  },
+  "reported": {
+    "parent_cash_billion": 13.8,
+    "parent_net_debt_billion": 136.3,
+    "consolidated_cash_billion": 67.3,
+    "consolidated_net_debt_billion": 637.2,
+    "ltv": 0.115,
+    "total_assets_thousand": 1891567429,
+    "total_liabilities_thousand": 1081718856,
+    "total_equity_thousand": 809848573,
+    "parent_attributable_equity_thousand": 511662496,
+    "reported_bvps": 748.41
+  },
+  "components": {},
+  "remaining_parent_claims": null,
+  "period_matched_common_shares": null,
+  "holding_discount": null,
+  "limitations": [
+    "No component equity valuations or matched ownership schedule assembled.",
+    "LTV excludes fixed-for-life perpetuals; do not infer common equity NAV by dividing reported net debt by LTV.",
+    "Parent net debt is not a complete inventory of preferred, perpetual and other common-equity claims.",
+    "Consolidated assets less liabilities includes noncontrolling equity; parent-attributable equity is not automatically common equity.",
+    "Subsidiary equity values already reflect subsidiary financing; do not subtract consolidated net debt again."
+  ]
+}
