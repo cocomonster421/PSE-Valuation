@@ -11,6 +11,11 @@ from backend.engine import calculate
 def replay():
     case=json.loads((ROOT/'examples/bdo_case.json').read_text(encoding='utf-8'))
     facts=case['reported']; assumptions=case['assumptions']
+    equity=case['common_equity_reconciliation']
+    parent_equity=equity['total_equity']-equity['noncontrolling_interests']
+    common_equity=parent_equity-equity['preferred_capital']
+    assert parent_equity==equity['parent_attributable_equity']
+    assert common_equity==equity['common_equity']==facts['common_equity_million']
     book=facts['bvps']; roe=assumptions['roe']; rate=assumptions['discount_rate']; growth=assumptions['terminal_growth']
     book_check=facts['common_equity_million']/facts['common_shares_million']
     assert abs(book_check-book)<.01
@@ -38,6 +43,7 @@ def replay():
     for expected_roe in case['sensitivity']['roe']:
         grid.append(dict(roe=expected_roe,values=[calculate('justified_pb',dict(inputs,roe=expected_roe,discount_rate=r))['fair_value'] for r in case['sensitivity']['discount_rate']]))
     return dict(arithmetic_verified=True,investment_target_verified=False,scope=case['scope'],
+                common_equity_from_statements_million=common_equity,
                 book_from_rounded_totals=book_check,observed_pb=observed_pb,
                 scenario_value=justified['fair_value'],residual_income_value=residual['fair_value'],
                 consistent_ddm_value=ddm['fair_value'],discounted_residual_income_value=direct,

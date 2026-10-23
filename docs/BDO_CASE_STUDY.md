@@ -12,6 +12,23 @@ book value per share of PHP 119.03 and a year-end reference price of PHP 134.60.
 The per-share series carries a property-dividend adjustment note. The separate
 preferred-share count must not be added to the common denominator.
 
+The [FY2025 annual filing](https://pdswordpressbucket.s3.ap-southeast-1.amazonaws.com/wp-content/uploads/2026/04/Disclosure-No.-1271-2026-Annual-Report-SEC-Form-17-A.pdf)
+reconciles that numerator. PDF page 197 reports group equity and minority interests;
+page 200 identifies preferred capital. Both pages were checked visually and as
+text. In PHP millions:
+
+```text
+Group equity                         644,146
+Less noncontrolling interests          3,072
+Equity attributable to parent        641,074
+Less preferred capital                 6,180
+Common equity                        634,894
+```
+
+Use the group column, not the standalone Parent Bank column. The case file records
+the filing hash and page references. This reconciles reported common equity; it
+does not establish that credit exposures or other book balances equal fair value.
+
 ```text
 Common book value per share = 634,894 million / 5,334 million = 119.02775
 Historical price/book = 134.60 / 119.03 = 1.13081 times
@@ -100,7 +117,6 @@ Edit [the case inputs](../examples/bdo_case.json) to change the bundled example.
 For residual income use payout 78.57142857%. The company brain remains unchanged
 unless you explicitly save company data.
 
-Before forming an investment view, reconcile common equity to the audited balance
-sheet, review capital needs and credit losses, forecast sustainable profitability,
+Before forming an investment view, review capital needs and credit losses, forecast sustainable profitability,
 calibrate the return requirement and test a transition to mature growth. The sourced
 book-value check and formula agreement are complete; that investment work is not.

@@ -51,5 +51,20 @@
     "corroborating_declaration_url": "https://edge.pse.com.ph/downloadHtml.do?file_id=1918558",
     "declaration_date": "2026-05-23",
     "scope": "Annualized regular cash policy, not actual FY2025 cash received, total shareholder distributions, or a guaranteed future dividend. The 2026 declaration corroborates the quarterly amount; it is not information available at the 2025 year-end."
+  },
+  "common_equity_reconciliation": {
+    "source_url": "https://pdswordpressbucket.s3.ap-southeast-1.amazonaws.com/wp-content/uploads/2026/04/Disclosure-No.-1271-2026-Annual-Report-SEC-Form-17-A.pdf",
+    "source_sha256": "c8d13f6455176d91f719a9d51c8565f33dc0c9512425d0cc5ba5eb78494b127a",
+    "financial_position_pdf_page": 197,
+    "equity_changes_pdf_page": 200,
+    "period_end": "2025-12-31",
+    "unit": "PHP million",
+    "scope": "BDO Unibank Group, not standalone Parent Bank",
+    "total_equity": 644146,
+    "noncontrolling_interests": 3072,
+    "parent_attributable_equity": 641074,
+    "preferred_capital": 6180,
+    "common_equity": 634894,
+    "verification": "Text extraction and rendered-page inspection. Reconciles reported common book equity, not economic fair-value adjustments."
   }
 }

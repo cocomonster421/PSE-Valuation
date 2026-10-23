@@ -55,6 +55,9 @@ tested software behavior, not the accuracy of every company's fair value.
 - [x] Reproduce the BDO bank example using justified P/B, dividend discounting and
   residual income under consistent assumptions. See [the BDO study](BDO_CASE_STUDY.md).
   Agreement is a model consistency check, not independent forecast evidence.
+- [x] Reconcile BDO's common-equity numerator to its FY2025 audited group balance
+  sheet and equity statement: remove minority interests and preferred capital.
+  Economic book-value adjustments and forward profitability still require analysis.
 - [x] Expose implied distributions in justified P/B and compare bank-model payouts
   with saved annual/TTM cash dividends in offline reviews. Missing or quarterly
   dividends are not automatically annualized. Differences require period, capital

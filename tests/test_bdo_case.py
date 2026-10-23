@@ -5,6 +5,7 @@ class BdoCaseTests(unittest.TestCase):
     def test_common_book_and_equivalent_models(self):
         result=replay()
         self.assertAlmostEqual(result['book_from_rounded_totals'],119.03,places=2)
+        self.assertEqual(result['common_equity_from_statements_million'],644146-3072-6180)
         self.assertAlmostEqual(result['scenario_value'],145.4811111111111)
         self.assertAlmostEqual(result['implied_payout'],11/14)
         self.assertAlmostEqual(result['implied_next_dividend'],13.0933)
