@@ -17,6 +17,7 @@ remain a separate local Windows check; they are not included in this badge.
 | --- | --- |
 | `python -m unittest discover -s tests -v` | All 14 valuation methods, invalid inputs, source conflicts, backups, report parsing, readiness checks and public-package rebuilding |
 | `python scripts/replay_tel_case.py` | Sourced TEL dividend case, EPS roll-forward and 15-cell sensitivity grid |
+| `python scripts/replay_bdo_case.py` | Common-book reconciliation, justified P/B, residual income/DDM consistency and ROE/return sensitivity |
 | `python scripts/replay_example.py` | Independent replay of the synthetic dividend example and sensitivity cases |
 | `python scripts/browser_check.py` | DDM/DCF, rate and cash-flow helpers, company/policy edits, imports, sensitivity, save/load/export and mobile width |
 | `python scripts/first_user_review.py` | Fresh-package onboarding, missing-data safeguards, advanced-method reopening and DCF evidence preservation |

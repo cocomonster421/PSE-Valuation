@@ -16,6 +16,7 @@ The project covers valuation-workflow requirements, model selection, a Python
 calculation backend, a JavaScript interface, report-import review and regression testing.
 
 [Read the TEL research case](docs/TEL_CASE_STUDY.md) ·
+[Inspect the BDO bank-model example](docs/BDO_CASE_STUDY.md) ·
 [See test coverage](docs/VERIFICATION.md) ·
 [Run locally](#getting-started)
 
