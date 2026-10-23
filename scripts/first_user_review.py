@@ -145,6 +145,20 @@ def main():
                 assert not errors, errors
                 assert not external, external
                 page.screenshot(path=str(evidence / '04-reopen-advanced.png'), full_page=True)
+                original_tel=(destination/'brain/TEL.toml').read_bytes()
+                page.locator('#try-tel-case').click()
+                expect(page.locator('#input-dividend')).to_have_value('92')
+                expect(page.locator('#research-case')).to_contain_text('not a verified price target')
+                expect(page.locator('#research-case')).to_contain_text('132.38')
+                observations['tel_case_value']=calculate()
+                expect(page.locator('.fair-value')).to_contain_text('844.73')
+                expect(page.locator('#sensitivity-results tbody tr')).to_have_count(3)
+                observations['tel_brain_unchanged']=(destination/'brain/TEL.toml').read_bytes()==original_tel
+                assert observations['tel_brain_unchanged']
+                assert observations['empty_calculation_blocked']
+                assert not errors,errors
+                assert not external,external
+                page.screenshot(path=str(evidence/'05-tel-research.png'),full_page=True)
                 browser.close()
         finally:
             http.shutdown()

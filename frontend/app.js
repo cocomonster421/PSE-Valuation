@@ -152,7 +152,7 @@ function renderMethods(selected) {
   for (const key of sorted) {
     const option = document.createElement("option"); option.value = key;
     const missing = missingInputs(key).length;
-    option.textContent = `${recommended.includes(key) ? "★ " : ""}${simpleNames[key] || policy.methods[key].name} · ${missing ? `${missing} missing` : "Inputs available"}`;
+    option.textContent = `${recommended.includes(key) ? "★ " : ""}${simpleNames[key] || policy.methods[key].name} · ${missing ? `${missing} missing from brain` : "Inputs available"}`;
     $("method").append(option);
   }
   $("method").value = selected && sorted.includes(selected) ? selected : sorted.find(m=>recommended.includes(m) && !missingInputs(m).length) || sorted[0];
@@ -174,7 +174,7 @@ function renderFields(overrides) {
     const value = definition.unit === "rate" && initial !== "" ? Number((initial * 100).toFixed(8)) : initial;
     const field = document.createElement("div"); field.className="field";
     const selectedModel=stockRecord.data.models?.[$("method").value];
-    const sourceText = overrides ? "Saved input · review required" : selectedModel && Object.hasOwn(selectedModel,key) ? `Company assumption · ${selectedModel.as_of || "Date unavailable"}` : source?.value != null ? `${source.status || "Review required"} · ${source.period_end || source.as_of || "Date unavailable"}` : initial !== "" ? "Illustrative policy assumption" : "Required input";
+    const sourceText = overrides ? "Scenario input · review required" : selectedModel && Object.hasOwn(selectedModel,key) ? `Company assumption · ${selectedModel.as_of || "Date unavailable"}` : source?.value != null ? `${source.status || "Review required"} · ${source.period_end || source.as_of || "Date unavailable"}` : initial !== "" ? "Illustrative policy assumption" : "Required input";
     field.innerHTML = `<label for="input-${escapeHtml(key)}">${escapeHtml(definition.label)} <small>${definition.unit === "rate" ? "%" : escapeHtml(definition.unit)}</small></label><input id="input-${escapeHtml(key)}" data-key="${escapeHtml(key)}" type="number" step="any" ${key === "price" ? "" : "required"} value="${escapeHtml(value)}"><details class="field-help"><summary>Details</summary><p class="help">${escapeHtml(definition.help)}</p>${source?.note ? `<p class="help">${escapeHtml(source.note)}</p>` : ""}</details><small class="provenance">${escapeHtml(sourceText)}${source?.source_url ? ` · ${safeLink(source.source_url)}` : ""}</small>`;
     field.querySelector("input").addEventListener("input", () => {
       field.querySelector(".provenance").textContent = "Edited input · document your basis";
