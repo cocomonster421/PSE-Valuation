@@ -83,6 +83,27 @@ def documented(evidence, today):
         return False
 
 
+def saved_cash_flow_issues(source, method):
+    """A reviewed numeric total alone cannot establish a cash-flow bridge."""
+    record = source.get('cash_flow_reconciliation')
+    if not isinstance(record, dict):
+        return ['cash_flow: saved total has no reproducible cash-statement reconciliation; use the reconciliation helper and save its evidence']
+    try:
+        if record['method'] != method:
+            raise ValueError('saved bridge uses a different DCF method')
+        basis = record['basis']
+        if not isinstance(basis, dict):
+            raise ValueError('bridge basis must be an object')
+        if any(basis.get(k) != source.get(k) for k in ('period_type', 'period_end')):
+            raise ValueError('saved total and bridge cover different periods')
+        result = reconcile_cash_flow(method, record['inputs'], basis)
+        if not math.isclose(result['cash_flow'], source['value'], rel_tol=1e-10, abs_tol=1e-8):
+            raise ValueError('saved total differs from the reproduced bridge')
+    except (KeyError, TypeError, ValueError, OverflowError) as error:
+        return [f'cash_flow: saved reconciliation cannot be reproduced: {error}']
+    return ['cash_flow: saved reconciliation arithmetic reproduced; source classification, leases, ownership and sustainable reinvestment still require review']
+
+
 def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
     today=today or date.today()
     missing=[]; issues=[]; audit=[]; periods=set(); unsupported=[]; data_issues=[]
@@ -153,6 +174,7 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
             kind="Saved company figure"; evidence=dict(source)
             data_issues.extend(period_issues(key, source))
             if key == "eps": data_issues.extend(eps_bridge_issues(source, today))
+            if key == "cash_flow": data_issues.extend(saved_cash_flow_issues(source, method))
             if source.get("status")!="reviewed": issues.append(f"{key}: saved figure needs review")
             period=source.get("period_end")
             if period and key!="price": periods.add(period[:10])

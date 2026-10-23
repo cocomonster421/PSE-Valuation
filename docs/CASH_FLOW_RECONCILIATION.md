@@ -5,6 +5,19 @@ or trailing 12 months in full PHP. Identify the period, sources, ownership scope
 lease treatment and adjustments before applying the result. The inputs and
 calculation trail are retained in saved analyses and replayed by the review check.
 
+After **Use reconciled cash flow**, choose **Save cash-flow baseline and evidence**
+to retain the total, inputs, period and explanations in the company brain. This
+explicitly replaces that method's saved cash-flow total; it does not save net claims.
+Editing helper inputs requires recalculation before saving. Reopening the helper
+loads the saved bridge for inspection or adjustment.
+
+The all-stock offline review replays saved bridges and flags missing evidence,
+method/period mismatches and totals that differ from the calculation. Changing a
+cash-flow baseline or its evidence resets reporting review; unresolved disclosures
+remain unresolved. Even a matching bridge retains a warning about classification,
+leases, ownership and sustainable reinvestment. Reproducing arithmetic cannot
+establish those facts.
+
 ## Calculation
 
 The standard CFO approaches distinguish firm cash flow from equity cash flow.

@@ -33,6 +33,10 @@
 - [x] Add a structured cash-statement bridge for FCFF and FCFE, explicit interest
   classification, signed adjustments, financing and ownership claims, with required
   period/source/lease explanations and a saved, replayable calculation trail.
+- [x] Save cash-flow reconciliation inputs and explanations in the company brain
+  through the helper. Offline reviews replay the baseline and flag missing or
+  inconsistent evidence. Changes reset reporting review without clearing unresolved
+  issues; matching arithmetic does not clear accounting-quality warnings.
 
 - [x] Preserve imported trailing-EPS components and dates in the company brain;
   replay their arithmetic and period alignment in offline reviews. Flag missing
@@ -45,7 +49,7 @@
 
 ## Remaining
 
-As of 23 October 2026, the regression suite has 86 passing tests. This establishes
+As of 23 October 2026, the regression suite has 88 passing tests. This establishes
 tested software behavior, not the accuracy of every company's fair value.
 
 - [x] Reproduce the BDO bank example using justified P/B, dividend discounting and

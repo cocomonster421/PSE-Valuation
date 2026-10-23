@@ -331,6 +331,14 @@ def main():
                     expect(page.locator('#input-cash_flow')).to_have_value('72.5' if model=='dcf_fcff' else '70')
                     if model=='dcf_fcff': expect(page.locator('#input-net_debt')).to_have_value('170')
                     expect(page.locator('#bridge-result')).to_contain_text('not independently verified')
+                    with page.expect_response(lambda response: '/api/stocks/DEMO' in response.url and response.request.method=='POST') as baseline_save:
+                        page.locator('#bridge-save').click()
+                    assert baseline_save.value.status==200,baseline_save.value.text()
+                    expect(page.locator('#bridge-result')).to_contain_text('Reporting review required')
+                    baseline=baseline_save.value.json()['data']
+                    saved_key='fcff_cash_flow' if model=='dcf_fcff' else 'fcfe_cash_flow'
+                    assert baseline['fields'][saved_key]['cash_flow_reconciliation']['method']==model
+                    assert baseline['reports']['review_status']=='unreviewed'
                 for key,value in dict(shares=10,discount_rate=10,growth=0,terminal_growth=0).items():
                     page.locator('#input-'+key).fill(str(value))
                 page.locator('#confirmed').check()
@@ -345,6 +353,16 @@ def main():
                 bridge_saved=next(s for s in saved_records if s['name']=='Cash statement reconciliation')
                 assert bridge_saved['derivations'][0]['reconciliation']['basis']['lease_treatment']=='none'
                 assert bridge_saved['derivations'][0]['reconciliation']['cash_flow']==70
+                page.locator('#method').select_option('pe')
+                page.locator('#method').select_option('dcf_fcfe')
+                page.locator('#cash-statement-helper summary').click()
+                expect(page.locator('#bridge-operating_cash_flow')).to_have_value('100')
+                expect(page.locator('#bridge-period-end')).to_have_value('2025-12-31')
+                expect(page.locator('#bridge-save')).to_be_disabled()
+                page.locator('#bridge-apply').click()
+                expect(page.locator('#bridge-save')).to_be_enabled()
+                page.locator('#bridge-capital_spending').fill('31')
+                expect(page.locator('#bridge-save')).to_be_disabled()
                 assert not errors,errors
                 browser.close()
                 print("PASS: TEL DDM/DCF, beta/WACC, saved sensitivity, export/load, input invalidation, baseline edit/reload, policy edit, BDO/REIT recommendations, mobile width, zero external requests and zero page errors")

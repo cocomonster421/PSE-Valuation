@@ -367,6 +367,12 @@ class Handler(BaseHTTPRequestHandler):
                     if payload.get("revision") != revision(previous):
                         return self.send(409, {"error": "This file changed. Reload it before saving to avoid overwriting another edit."})
                     if path.startswith('/api/stocks/'):
+                        cash_keys=('fcff_cash_flow','fcfe_cash_flow')
+                        if any(previous.get('fields',{}).get(k) != data.get('fields',{}).get(k) for k in cash_keys):
+                            reports=data.setdefault('reports',{})
+                            if reports.get('review_status') != 'unresolved':
+                                reports['review_status']='unreviewed'
+                            reports['invalidation_reason']='Saved cash-flow total or reconciliation changed; review classification, period and assumptions again.'
                         old_eps=previous.get('fields',{}).get('eps',{})
                         new_eps=data.get('fields',{}).get('eps',{})
                         bridge=new_eps.get('eps_bridge')

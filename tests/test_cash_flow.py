@@ -1,7 +1,7 @@
 import unittest
 
 from backend.cash_flow import reconcile_cash_flow
-from backend.review import review_inputs
+from backend.review import review_inputs, saved_cash_flow_issues
 from backend.catalog import initial_policy
 
 
@@ -18,6 +18,17 @@ def inputs():
 
 
 class CashFlowTests(unittest.TestCase):
+    def test_saved_bridge_requires_matching_method_period_and_total(self):
+        record=reconcile_cash_flow('dcf_fcff',inputs(),basis())
+        source=dict(value=72.5,period_type='annual',period_end='2025-12-31',cash_flow_reconciliation=record)
+        self.assertIn('arithmetic reproduced',saved_cash_flow_issues(source,'dcf_fcff')[0])
+        for change in ({'value':73},{'period_end':'2024-12-31'},{'period_type':'ttm'},
+                       {'cash_flow_reconciliation':{'method':'dcf_fcfe'}},
+                       {'cash_flow_reconciliation':{'method':'dcf_fcff','basis':{}}}):
+            with self.subTest(change=change):
+                self.assertIn('cannot be reproduced',saved_cash_flow_issues(dict(source,**change),'dcf_fcff')[0])
+        self.assertIn('no reproducible',saved_cash_flow_issues({'value':72.5},'dcf_fcff')[0])
+
     def test_interest_classification_does_not_change_economic_cash(self):
         inside=reconcile_cash_flow('dcf_fcff',inputs(),basis())
         outside=reconcile_cash_flow('dcf_fcff',dict(inputs(),operating_cash_flow=110,interest_outside_cfo=10),basis())

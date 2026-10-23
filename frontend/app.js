@@ -656,18 +656,38 @@ function renderCashStatementHelper(){
     repayments:["Debt principal repaid","Principal only, not interest. Include lease principal only when leases are financing."],
     common_adjustment:["Adjustment to cash attributable to common shareholders","Signed adjustment for non-common or minority cash flows not already removed. Explain ownership scope; cash distributions alone may not capture the full claim."]
   };
+  const savedBridge=stockRecord.data.fields[baselineKey(method,'cash_flow')]?.cash_flow_reconciliation;
   const keys=['operating_cash_flow','interest_paid','interest_outside_cfo','tax','capital_spending','additional_capex','cfo_adjustment','investment_adjustment',...(method==='dcf_fcff'?['debt','cash','other_claims']:['borrowings','repayments','common_adjustment'])];
   const wrapper=document.createElement('div');wrapper.id='cash-statement-helper';
-  wrapper.innerHTML='<details class="advanced"><summary>Reconcile a cash-flow statement</summary><p class="help">Annual figures in full pesos. Every adjustment needs a value, including reviewed zeros. Classification choices remain your responsibility.</p><div class="fields"></div><label>Period covered<select id="bridge-period-type"><option value="">Choose</option><option value="annual">Full year</option><option value="ttm">Trailing 12 months</option></select></label><label>Period end<input id="bridge-period-end" type="date"></label><label>Lease treatment<select id="bridge-lease"><option value="">Choose</option><option value="financing">Financing debt</option><option value="operating">Operating expense</option><option value="none">No material leases</option></select></label><p class="help">Financing leases: align lease investment, new financing, principal, interest and debt. Operating leases: include lease cash costs in normalized operating cash and exclude lease financing from debt/borrowing inputs. Explain adjustments below; the app does not reclassify leases automatically.</p><label>Sources and statement references<textarea id="bridge-source-note" rows="2"></textarea></label><label>Company / ownership scope<textarea id="bridge-scope-note" rows="2" placeholder="Consolidated or parent; treatment of minority and preferred interests"></textarea></label><label>Lease treatment explanation<textarea id="bridge-lease-note" rows="2"></textarea></label><label>Adjustment explanations<textarea id="bridge-adjustment-note" rows="2" placeholder="Explain signed adjustments, or why zero is appropriate"></textarea></label><button id="bridge-apply" type="button" class="quiet">Use reconciled cash flow</button><div id="bridge-result" role="status"></div></details>';
+  wrapper.innerHTML='<details class="advanced"><summary>Reconcile a cash-flow statement</summary><p class="help">Annual figures in full pesos. Every adjustment needs a value, including reviewed zeros. Classification choices remain your responsibility.</p><div class="fields"></div><label>Period covered<select id="bridge-period-type"><option value="">Choose</option><option value="annual">Full year</option><option value="ttm">Trailing 12 months</option></select></label><label>Period end<input id="bridge-period-end" type="date"></label><label>Lease treatment<select id="bridge-lease"><option value="">Choose</option><option value="financing">Financing debt</option><option value="operating">Operating expense</option><option value="none">No material leases</option></select></label><p class="help">Financing leases: align lease investment, new financing, principal, interest and debt. Operating leases: include lease cash costs in normalized operating cash and exclude lease financing from debt/borrowing inputs. Explain adjustments below; the app does not reclassify leases automatically.</p><label>Sources and statement references<textarea id="bridge-source-note" rows="2"></textarea></label><label>Company / ownership scope<textarea id="bridge-scope-note" rows="2" placeholder="Consolidated or parent; treatment of minority and preferred interests"></textarea></label><label>Lease treatment explanation<textarea id="bridge-lease-note" rows="2"></textarea></label><label>Adjustment explanations<textarea id="bridge-adjustment-note" rows="2" placeholder="Explain signed adjustments, or why zero is appropriate"></textarea></label><button id="bridge-apply" type="button" class="quiet">Use reconciled cash flow</button><button id="bridge-save" type="button" class="quiet" disabled>Save cash-flow baseline and evidence</button><p class="help">Saves this cash-flow total and bridge to the company file for offline checks. Net claims remain separate. Saving does not approve the source assumptions.</p><div id="bridge-result" role="status"></div></details>';
   for(const key of keys){
     const [label,help]=definitions[key], row=document.createElement('div');
-    const saved=stockRecord.data.fields[key]?.value;
+    const saved=savedBridge?.inputs?.[key] ?? stockRecord.data.fields[key]?.value;
     row.innerHTML=`<label for="bridge-${key}">${escapeHtml(label)}</label><input id="bridge-${key}" type="number" step="any" value="${saved==null?'':escapeHtml(key==='tax'?saved*100:saved)}"><p class="help">${escapeHtml(help)}</p>`;
     wrapper.querySelector('.fields').append(row);
   }
   $("cash-helper").append(wrapper);
-  let bridgeVersion=0;
-  wrapper.addEventListener('input',()=>{bridgeVersion++;});
+  if(savedBridge?.basis){
+    for(const [id,key] of Object.entries({'period-type':'period_type','period-end':'period_end',lease:'lease_treatment','source-note':'source_note','scope-note':'scope_note','lease-note':'lease_note','adjustment-note':'adjustment_note'})) $('bridge-'+id).value=savedBridge.basis[key] || '';
+  }
+  let bridgeVersion=0, latestBridge=null;
+  wrapper.addEventListener('input',()=>{bridgeVersion++;latestBridge=null;$('bridge-save').disabled=true;});
+  $('bridge-save').onclick=async()=>{
+    if(!latestBridge)return;
+    const ticker=stockRecord.data.ticker, data=structuredClone(stockRecord.data), record=structuredClone(latestBridge);
+    const key=baselineKey(method,'cash_flow');
+    data.fields[key]={value:record.cash_flow,period_type:record.basis.period_type,period_end:record.basis.period_end,
+      as_of:record.basis.period_end,status:'needs_review',note:record.basis.source_note,unit:'PHP',
+      cash_flow_reconciliation:{method:record.method,reconciliation_version:record.reconciliation_version,inputs:record.inputs,basis:record.basis}};
+    $('bridge-save').disabled=true;
+    try{
+      const saved=await api(`/api/stocks/${ticker}`,{data,revision:stockRecord.revision});
+      if(!wrapper.isConnected || stockRecord.data.ticker!==ticker)return;
+      stockRecord=saved;
+      $('bridge-result').textContent='Cash-flow baseline and evidence saved. Reporting review required; net claims were not saved.';
+      invalidate();
+    }catch(error){if(wrapper.isConnected){$('bridge-result').textContent=error.message;$('bridge-save').disabled=!latestBridge;}}
+  };
   $('bridge-apply').onclick=async()=>{
     const version=inputVersion, submittedBridgeVersion=++bridgeVersion;
     try{
@@ -675,6 +695,7 @@ function renderCashStatementHelper(){
       const basis={period_type:$('bridge-period-type').value,period_end:$('bridge-period-end').value,lease_treatment:$('bridge-lease').value,source_note:$('bridge-source-note').value,scope_note:$('bridge-scope-note').value,lease_note:$('bridge-lease-note').value,adjustment_note:$('bridge-adjustment-note').value};
       const reconciled=await api('/api/reconcile-cash',{method,inputs,basis});
       if(version!==inputVersion || submittedBridgeVersion!==bridgeVersion || !wrapper.isConnected)return;
+      latestBridge=reconciled;$('bridge-save').disabled=false;
       $('input-cash_flow').value=reconciled.cash_flow;
       if(method==='dcf_fcff')$('input-net_debt').value=reconciled.net_debt;
       const evidence={inputs:reconciled.inputs,reconciliation:reconciled,sources:structuredClone(stockRecord.data.fields),formula:reconciled.steps.map(step=>step.label).join('; ')};

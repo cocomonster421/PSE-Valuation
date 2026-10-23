@@ -65,6 +65,26 @@ class LocalAPITests(unittest.TestCase):
         self.assertEqual(code,200)
         self.assertEqual(reviewed['data']['fields']['eps']['eps_bridge']['review_status'],'reconciled')
 
+    def test_cash_flow_changes_invalidate_review_and_preserve_unresolved_issues(self):
+        from backend.cash_flow import reconcile_cash_flow
+        from test_cash_flow import inputs, basis
+        bridge=reconcile_cash_flow('dcf_fcff',inputs(),basis())
+        evidence={k:bridge[k] for k in ('method','inputs','basis','reconciliation_version')}
+        for state in ('reviewed','unresolved'):
+            stock={'ticker':'CASHCHECK','name':'Cash fixture','industry':'Test','currency':'PHP',
+                   'reports':{'review_status':state,'review_note':'Existing review'},
+                   'fields':{'fcff_cash_flow':{'value':70,'as_of':'2025-12-31','note':'Fixture'}}}
+            server.write(server.ROOT/'brain/CASHCHECK.toml',stock)
+            _,record=self.request('/api/stocks/CASHCHECK')
+            record['data']['fields']['fcff_cash_flow'].update(value=72.5,period_type='annual',
+                period_end='2025-12-31',cash_flow_reconciliation=evidence)
+            code,saved=self.request('/api/stocks/CASHCHECK',record)
+            self.assertEqual(code,200,saved)
+            _,reloaded=self.request('/api/stocks/CASHCHECK')
+            self.assertEqual(reloaded['data']['fields']['fcff_cash_flow']['cash_flow_reconciliation'],evidence)
+            self.assertEqual(reloaded['data']['reports']['review_status'],'unresolved' if state=='unresolved' else 'unreviewed')
+            self.assertEqual(reloaded['data']['reports']['review_note'],'Existing review')
+
     def test_calculation_and_confirmation(self):
         body = {"method": "ddm", "inputs": {"dividend": 10, "discount_rate": .12, "terminal_growth": .02}}
         self.assertEqual(self.request("/api/calculate", body)[0], 400)
