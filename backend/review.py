@@ -2,6 +2,7 @@
 from datetime import date
 import math
 from backend.cash_flow import reconcile_cash_flow
+from backend.components import reconcile_components
 
 ASSUMPTIONS = {"growth", "discount_rate", "terminal_growth", "multiple", "discount",
                "required_yield", "cap_rate", "roe", "payout"}
@@ -171,6 +172,16 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
         if derived:
             kind="Calculated from helper inputs"; evidence=derived
             issues.append(f"{key}: review the helper's inputs and source periods")
+            if derived.get('component_reconciliation'):
+                try:
+                    if method!='sotp' or key!='asset_value':
+                        raise ValueError('component bridge belongs to SOTP owned asset value')
+                    replay=reconcile_components(derived['component_reconciliation']['components'])
+                    if not math.isclose(replay['asset_value'],value,rel_tol=1e-10,abs_tol=1e-8):
+                        raise ValueError('component sum differs from valuation input')
+                    issues.extend(replay['warnings'])
+                except (ValueError,TypeError,KeyError,OverflowError) as error:
+                    data_issues.append(f'asset_value: component reconciliation cannot be reproduced: {error}')
             if derived.get('reconciliation'):
                 try:
                     record=derived['reconciliation']

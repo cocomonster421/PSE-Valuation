@@ -345,6 +345,8 @@ async function loadSavedAnalysis(s) {
     renderMethods(s.result.method);
     renderFields(s.result.inputs);
     derivations=structuredClone(s.derivations || []).filter(d=>d.output_field==="working_capital_increase" || s.result.inputs[d.output_field]===d.value);
+    const components=derivations.find(d=>d.output_field==='asset_value')?.component_reconciliation?.components;
+    if(s.result.method==='sotp' && components){$('cash-helper').replaceChildren();renderComponentHelper(components);}
     for(const d of derivations) {
       d.origin = d.origin || {saved_at:s.saved_at, name:s.name};
       for(const [key,value] of Object.entries(d.inputs || {})) {
@@ -544,6 +546,7 @@ function rememberDerivation(item) {
 }
 function renderCashHelper() {
   $("cash-helper").replaceChildren();
+  if($("method").value==='sotp') renderComponentHelper();
   if(["dcf_fcff","dcf_fcfe"].includes($("method").value)) renderCashStatementHelper();
   if($("method").value!=="dcf_fcff") return;
   const keys=["operating_profit","depreciation","other_noncash","capital_spending","additional_capex","working_capital_increase","debt","cash","other_claims"];
@@ -787,3 +790,47 @@ $('try-bdo-case').onclick=async()=>{
     status('BDO example loaded. Review inputs before calculating.');
   }catch(error){status(error.message);}finally{button.disabled=false;}
 };
+
+function renderComponentHelper(saved=[]){
+  const panel=document.createElement('details');panel.id='component-helper';panel.className='advanced';
+  panel.innerHTML='<summary>Add up owned businesses</summary><p class="help">Enter full pesos. Enterprise value needs subsidiary net claims deducted first. Equity value already includes that deduction. Already-owned equity also includes your ownership percentage. Save the analysis to retain these rows; the company brain is not changed.</p><div id="component-rows"></div><button type="button" id="component-add" class="quiet">Add business</button> <button type="button" id="component-apply" class="quiet">Use component total</button><div id="component-result" role="status"></div>';
+  $('cash-helper').append(panel);
+  let version=0;
+  panel.addEventListener('input',()=>{version++;});
+  function addRow(item={}){
+    const row=document.createElement('fieldset');row.className='fields';
+    row.innerHTML='<legend>Business or asset</legend>';
+    const controls=[['name','Name','text'],['value','Starting value (PHP)','number'],['ownership','Ownership (%)','number'],['net_claims','Subsidiary net claims (PHP)','number'],['as_of','Valuation date','date'],['source_note','Source and valuation basis','text']];
+    const choice=document.createElement('label');choice.textContent='Starting value represents';
+    const select=document.createElement('select');select.dataset.component='basis';
+    for(const [value,label] of [['equity','Equity value'],['enterprise','Enterprise value (before net claims)'],['attributable','Already-owned equity value']]){const option=document.createElement('option');option.value=value;option.textContent=label;select.append(option);}
+    select.value=item.basis || 'equity';choice.append(select);row.append(choice);
+    for(const [key,label,type] of controls){
+      const field=document.createElement('label');field.textContent=label;
+      const input=document.createElement('input');input.type=type;input.step='any';input.dataset.component=key;
+      input.value=item[key]==null?'':key==='ownership'?item[key]*100:item[key];field.append(input);row.append(field);
+    }
+    function scope(){
+      const debt=row.querySelector('[data-component="net_claims"]'),owned=row.querySelector('[data-component="ownership"]');
+      debt.disabled=select.value!=='enterprise';if(debt.disabled)debt.value='0';
+      owned.disabled=select.value==='attributable';if(owned.disabled)owned.value='100';
+    }
+    select.onchange=()=>{version++;scope();};scope();
+    const remove=document.createElement('button');remove.type='button';remove.className='quiet';remove.textContent='Remove business';remove.onclick=()=>{row.remove();version++;};row.append(remove);
+    $('component-rows').append(row);version++;
+  }
+  for(const item of saved.length?saved:[{}])addRow(item);
+  $('component-add').onclick=()=>addRow();
+  $('component-apply').onclick=async()=>{
+    const submitted=version, valuationVersion=inputVersion;
+    try{
+      const components=[...$('component-rows').children].map(row=>Object.fromEntries([...row.querySelectorAll('[data-component]')].map(input=>[input.dataset.component,input.type==='number'?(input.value===''?null:Number(input.value)/(input.dataset.component==='ownership'?100:1)):input.value])));
+      const result=await api('/api/reconcile-components',{components});
+      if(!panel.isConnected || submitted!==version || valuationVersion!==inputVersion)return;
+      $('input-asset_value').value=result.asset_value;
+      rememberDerivation({output_field:'asset_value',value:result.asset_value,component_reconciliation:result,formula:'Sum of component equity values multiplied by ownership'});
+      invalidate();
+      $('component-result').innerHTML=result.steps.map(s=>`<p>${escapeHtml(s.name)}: ${escapeHtml(s.formula)} = ${peso(s.attributable_value)}</p>`).join('')+result.warnings.map(w=>`<p class="warning">${escapeHtml(w)}</p>`).join('');
+    }catch(error){if(panel.isConnected && submitted===version)$('component-result').textContent=error.message;}
+  };
+}

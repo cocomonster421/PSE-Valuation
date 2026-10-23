@@ -383,6 +383,33 @@ def main():
                 expect(page.locator('#bridge-save')).to_be_enabled()
                 page.locator('#bridge-capital_spending').fill('31')
                 expect(page.locator('#bridge-save')).to_be_disabled()
+                page.locator('#stock-search').fill('AC')
+                page.locator('#search-results button').filter(has_text='AC ·').click()
+                page.locator('#method').select_option('sotp')
+                page.locator('#component-helper summary').click()
+                row=page.locator('#component-rows fieldset').first
+                row.locator('[data-component="basis"]').select_option('enterprise')
+                for key,value in dict(name='Synthetic business',value=1000,net_claims=200,ownership=60,
+                                      as_of='2025-12-31',source_note='Synthetic component fixture').items():
+                    row.locator(f'[data-component="{key}"]').fill(str(value))
+                page.locator('#component-apply').click()
+                expect(page.locator('#input-asset_value')).to_have_value('480')
+                for key,value in dict(liabilities=80,shares=10,discount=10).items():
+                    page.locator('#input-'+key).fill(str(value))
+                page.locator('#confirmed').check()
+                page.get_by_role('button',name='Calculate fair value').click()
+                expect(page.locator('.fair-value')).to_contain_text('36.00')
+                page.locator('#scenario-name').fill('SOTP component evidence')
+                with page.expect_response(lambda response: response.url.endswith('/api/scenarios') and response.request.method=='POST') as component_save:
+                    page.locator('#save-scenario').click()
+                assert component_save.value.status==201
+                component_saved=next(json.loads(p.read_text(encoding='utf-8')) for p in (test_root/'scenarios').glob('*.json') if json.loads(p.read_text(encoding='utf-8'))['name']=='SOTP component evidence')
+                assert component_saved['derivations'][0]['component_reconciliation']['components'][0]['ownership']==.6
+                page.locator('#open-library').click()
+                page.locator('.saved-item').filter(has_text='SOTP component evidence').get_by_role('button',name='Load inputs').click()
+                page.locator('#component-helper summary').click()
+                expect(page.locator('#component-rows [data-component="name"]')).to_have_value('Synthetic business')
+                expect(page.locator('#component-rows [data-component="ownership"]')).to_have_value('60')
                 assert not errors,errors
                 browser.close()
                 print("PASS: TEL DDM/DCF, beta/WACC, saved sensitivity, export/load, input invalidation, baseline edit/reload, policy edit, BDO/REIT recommendations, mobile width, zero external requests and zero page errors")

@@ -49,7 +49,7 @@
 
 ## Remaining
 
-As of 23 October 2026, the regression suite has 92 passing tests. This establishes
+As of 23 October 2026, the regression suite has 96 passing tests. This establishes
 tested software behavior, not the accuracy of every company's fair value.
 
 - [x] Reproduce the BDO bank example using justified P/B, dividend discounting and
@@ -65,6 +65,9 @@ tested software behavior, not the accuracy of every company's fair value.
 - [x] Separate parent and consolidated debt/equity in the
   [AC source worksheet](AC_SCOPE_REVIEW.md). Its replay returns no fair value
   because component values, remaining claims and matched common shares are missing.
+- [x] Add an editable SOTP component table with explicit enterprise/equity/owned
+  value types. Reject double debt or ownership adjustments, save rows with analyses,
+  restore them for editing, and replay their arithmetic during input review.
 
 - [ ] Reconcile individual dividend payment periods and revised earnings/share bases
   used in trailing-year calculations; period labels alone do not prove comparability.

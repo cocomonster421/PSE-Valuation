@@ -30,6 +30,25 @@ do not divide consolidated equity by the latest common share count to recreate i
 
 ## Which input goes where?
 
+In the app, choose SOTP and open **Add up owned businesses**. Enter each
+component's value type, value in full pesos, owned percentage, valuation date and
+source explanation. **Use component total** fills the owned-asset total. Enter
+remaining parent claims, common shares and the holding discount separately.
+Saving the analysis retains the rows; loading its inputs restores them for editing.
+The helper does not change the company brain or supply missing AC valuations.
+
+For a synthetic check, enterprise value 1,000 minus subsidiary net claims 200,
+owned 60%, contributes 480. Entering equity value 800 at 60% gives the same result.
+An already-owned equity value of 480 uses 100% and no further subsidiary deduction.
+With remaining parent claims 80, ten common shares and a 10% holding discount,
+the result is (480 − 80) × 90% / 10 = 36 per share. These are invented numbers.
+
+The helper rejects duplicate component names, missing sources, ownership outside
+0–100%, debt deductions from equity values, and a second ownership adjustment to
+already-owned equity. It flags mixed valuation dates and negative component equity.
+It cannot discover overlapping investments with different names or certify that
+the values, ownership stakes and claims are economically appropriate.
+
 | Starting value | Required treatment |
 | --- | --- |
 | Subsidiary enterprise value | Deduct that subsidiary's net claims to obtain equity, then apply the owned percentage |
