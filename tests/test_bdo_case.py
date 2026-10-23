@@ -19,3 +19,12 @@ class BdoCaseTests(unittest.TestCase):
         for column in range(3):
             values=[row['values'][column] for row in grid]
             self.assertEqual(values,sorted(values))
+
+    def test_dividend_policy_exposes_distribution_gap(self):
+        result=replay()
+        check=result['dividend_policy_check']
+        self.assertAlmostEqual(check['annualized_regular_cash'],4.4)
+        self.assertAlmostEqual(check['modeled_next_regular_cash'],4.532)
+        self.assertAlmostEqual(check['regular_cash_only_ddm'],4.532/.09)
+        self.assertAlmostEqual(check['distribution_multiplier'],13.0933/4.532)
+        self.assertLess(check['regular_cash_only_ddm'],result['scenario_value'])

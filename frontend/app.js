@@ -775,6 +775,15 @@ $('try-bdo-case').onclick=async()=>{
     $('scenario-notes').value=JSON.stringify({research_case:example.title,...example},null,2);
     const panel=$('research-case');panel.hidden=false;
     panel.innerHTML=`<h2>BDO bank example · ${escapeHtml(example.financial_period_end)}</h2><p class="warning">${escapeHtml(example.scope)}</p><p>Historical reference price: ${peso(example.reported.period_end_price)}. Book value per common share: ${peso(example.reported.bvps)}.</p><details><summary>Sources and assumptions</summary><p>${escapeHtml(example.assumptions.roe_basis)}</p><p>${escapeHtml(example.assumptions.return_basis)}</p><p>${escapeHtml(example.assumptions.growth_basis)}</p><p>${safeLink(example.sources.share_information,'Common equity and share information ↗')} · ${safeLink(example.sources.results,'Annual results ↗')}</p>${example.limitations.map(note=>`<p>${escapeHtml(note)}</p>`).join('')}</details><p class="help">Scenario inputs leave your company brain unchanged. Sources, assumptions and limitations are included in saved analysis notes.</p>`;
+    const policy=example.dividend_policy_check;
+    if(policy){
+      const annual=policy.quarterly_regular_dividend*policy.payments_per_year;
+      const next=annual*(1+example.assumptions.terminal_growth);
+      const required=example.reported.bvps*(example.assumptions.roe-example.assumptions.terminal_growth);
+      const check=document.createElement('p');check.className='warning';
+      check.innerHTML=`Bundled scenario check: annualized regular cash policy ${peso(annual)}; next-year cash at the selected growth ${peso(next)}; equivalent-model distribution ${peso(required)}. Additional distributions or capital release need support. This comparison uses the original example assumptions. ${safeLink(policy.source_url,'Dividend policy ↗')}`;
+      panel.append(check);
+    }
     status('BDO example loaded. Review inputs before calculating.');
   }catch(error){status(error.message);}finally{button.disabled=false;}
 };

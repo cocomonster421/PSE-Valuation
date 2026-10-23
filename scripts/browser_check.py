@@ -316,6 +316,7 @@ def main():
                 expect(page.locator('#method')).to_have_value('justified_pb')
                 expect(page.locator('#input-bvps')).to_have_value('119.03')
                 expect(page.locator('#research-case')).to_contain_text('not a contemporaneous trade or current target')
+                expect(page.locator('#research-case')).to_contain_text('Additional distributions or capital release need support')
                 expect(page.locator('#confirmed')).not_to_be_checked()
                 page.locator('#confirmed').check()
                 page.get_by_role('button',name='Calculate fair value').click()

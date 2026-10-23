@@ -65,6 +65,25 @@ Agreement tests implementation and assumptions; it is not independent investment
 corroboration. Without evidence that the implied distribution and capital policy
 are feasible, this model cannot support a target.
 
+### Compare the required payout with the cash policy
+
+The [April 2025 dividend policy](https://www.bdo.com.ph/content/dam/bdounibank/en-ph/about-bdo/investor-relations/financials/pdf/dividend-information/dividend-policy/bdo-dividend-policy-statement-2025.pdf)
+sets regular quarterly cash at PHP 1.10 starting Q2, or PHP 4.40 annualized.
+A [May 2026 declaration](https://edge.pse.com.ph/downloadHtml.do?file_id=1918558)
+also specifies PHP 1.10. This later observation is retrospective corroboration.
+
+At the scenario's 3% growth, next-year regular cash would be 4.40 × 1.03 = 4.532.
+The equivalent-model distribution of 13.0933 is about **2.89 times** that amount.
+Discounting only the growing regular cash at 12% gives 4.532 / (12% − 3%) =
+**PHP 50.36**. This is a contrasting scenario, not a replacement price target.
+
+The gap exposes an assumption: book-based value requires a path to distributing
+the modeled earnings or releasing capital. Regular cash dividends alone do not
+demonstrate that path. Investigate other distributions, capital needs and future
+payout changes. The annualized policy is neither actual FY2025 cash received nor
+total shareholder distributions; special/property dividends and buybacks require
+separate treatment. Do not interpret the difference as a proven mispricing.
+
 ## Reproduce and extend
 
 ```sh

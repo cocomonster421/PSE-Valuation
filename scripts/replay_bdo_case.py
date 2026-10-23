@@ -25,6 +25,15 @@ def replay():
     for value in (residual['fair_value'],ddm['fair_value'],direct):
         assert math.isclose(justified['fair_value'],value,rel_tol=1e-10)
     observed_pb=facts['period_end_price']/book
+    policy=case['dividend_policy_check']
+    annual_regular=policy['quarterly_regular_dividend']*policy['payments_per_year']
+    policy_ddm=calculate('ddm',dict(dividend=annual_regular,discount_rate=rate,terminal_growth=growth))
+    payout_check=dict(annualized_regular_cash=annual_regular,
+        modeled_next_regular_cash=annual_regular*(1+growth),
+        consistent_model_next_dividend=next_dividend,
+        distribution_multiplier=next_dividend/(annual_regular*(1+growth)),
+        regular_cash_only_ddm=policy_ddm['fair_value'],scope=policy['scope'],
+        conclusion='The equivalent-model payout exceeds the regular-cash policy scenario. Explain additional distributions or capital release before treating model agreement as investment support.')
     grid=[]
     for expected_roe in case['sensitivity']['roe']:
         grid.append(dict(roe=expected_roe,values=[calculate('justified_pb',dict(inputs,roe=expected_roe,discount_rate=r))['fair_value'] for r in case['sensitivity']['discount_rate']]))
@@ -32,6 +41,7 @@ def replay():
                 book_from_rounded_totals=book_check,observed_pb=observed_pb,
                 scenario_value=justified['fair_value'],residual_income_value=residual['fair_value'],
                 consistent_ddm_value=ddm['fair_value'],discounted_residual_income_value=direct,
+                dividend_policy_check=payout_check,
                 implied_payout=payout,implied_next_dividend=next_dividend,
                 required_roe_at_reference_price=growth+observed_pb*(rate-growth),
                 sensitivity=grid,assumptions=assumptions,limitations=case['limitations'])

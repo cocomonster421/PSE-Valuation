@@ -49,7 +49,7 @@
 
 ## Remaining
 
-As of 23 October 2026, the regression suite has 88 passing tests. This establishes
+As of 23 October 2026, the regression suite has 89 passing tests. This establishes
 tested software behavior, not the accuracy of every company's fair value.
 
 - [x] Reproduce the BDO bank example using justified P/B, dividend discounting and

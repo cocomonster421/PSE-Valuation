@@ -41,5 +41,15 @@
     "Book value may require credit, fair-value and other comprehensive income adjustments.",
     "Sources flag historical per-share adjustments for the May 2025 property dividend.",
     "Agreement across formulas uses identical assumptions and is not independent investment corroboration."
-  ]
+  ],
+  "dividend_policy_check": {
+    "quarterly_regular_dividend": 1.1,
+    "payments_per_year": 4,
+    "policy_approved_on": "2025-04-25",
+    "effective_from": "2025-Q2",
+    "source_url": "https://www.bdo.com.ph/content/dam/bdounibank/en-ph/about-bdo/investor-relations/financials/pdf/dividend-information/dividend-policy/bdo-dividend-policy-statement-2025.pdf",
+    "corroborating_declaration_url": "https://edge.pse.com.ph/downloadHtml.do?file_id=1918558",
+    "declaration_date": "2026-05-23",
+    "scope": "Annualized regular cash policy, not actual FY2025 cash received, total shareholder distributions, or a guaranteed future dividend. The 2026 declaration corroborates the quarterly amount; it is not information available at the 2025 year-end."
+  }
 }
