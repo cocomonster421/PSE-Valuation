@@ -66,6 +66,12 @@ company by company using evidence, sensitivity and model suitability.
 
 ## Trailing EPS evidence
 
+Use **Edit company data → EPS → Trailing-year EPS calculation and review** to
+inspect or enter the three components and dates. **Use calculated trailing EPS**
+applies their sum to the baseline. Saving changed components or baseline periods
+resets comparability review, including edits through the API. Reopen the saved
+record to document your new review. The arithmetic and period warnings still apply.
+
 An imported calendar-year EPS bridge is saved under `sources.eps.eps_bridge` in
 its company TOML file. The three EPS values and period ends remain individually
 editable. The offline check reproduces annual + current YTD - prior YTD and

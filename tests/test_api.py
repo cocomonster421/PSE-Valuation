@@ -48,6 +48,23 @@ class LocalAPITests(unittest.TestCase):
             with error:
                 return error.code, json.load(error)
 
+    def test_editing_eps_components_invalidates_previous_review(self):
+        stock={'ticker':'EPSCHECK','name':'EPS fixture','industry':'Test','currency':'PHP',
+               'fields':{'eps':{'value':12,'period_type':'ttm','period_end':'2026-06-30','as_of':'2026-07-01','note':'Synthetic fixture',
+                   'eps_bridge':{'annual_eps':10,'current_ytd_eps':6,'prior_ytd_eps':4,
+                                 'review_status':'reconciled','review_note':'Original review'}}}}
+        server.write(server.ROOT/'stock_data/EPSCHECK.json',stock)
+        _, record=self.request('/api/stocks/EPSCHECK')
+        record['data']['fields']['eps']['eps_bridge']['annual_eps']=11
+        code, saved=self.request('/api/stocks/EPSCHECK',record)
+        self.assertEqual(code,200)
+        self.assertEqual(saved['data']['fields']['eps']['eps_bridge']['review_status'],'unreviewed')
+        self.assertEqual(saved['data']['fields']['eps']['eps_bridge']['review_note'],'Original review')
+        saved['data']['fields']['eps']['eps_bridge']['review_status']='reconciled'
+        code, reviewed=self.request('/api/stocks/EPSCHECK',saved)
+        self.assertEqual(code,200)
+        self.assertEqual(reviewed['data']['fields']['eps']['eps_bridge']['review_status'],'reconciled')
+
     def test_calculation_and_confirmation(self):
         body = {"method": "ddm", "inputs": {"dividend": 10, "discount_rate": .12, "terminal_growth": .02}}
         self.assertEqual(self.request("/api/calculate", body)[0], 400)

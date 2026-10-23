@@ -351,6 +351,17 @@ class Handler(BaseHTTPRequestHandler):
                     previous = read(destination)
                     if payload.get("revision") != revision(previous):
                         return self.send(409, {"error": "This file changed. Reload it before saving to avoid overwriting another edit."})
+                    if path.startswith('/api/stocks/'):
+                        old_eps=previous.get('fields',{}).get('eps',{})
+                        new_eps=data.get('fields',{}).get('eps',{})
+                        bridge=new_eps.get('eps_bridge')
+                        if isinstance(bridge,dict):
+                            keys=('annual_eps','current_ytd_eps','prior_ytd_eps','annual_end','current_ytd_end','prior_ytd_end')
+                            old_bridge=old_eps.get('eps_bridge',{})
+                            if (any(old_bridge.get(k)!=bridge.get(k) for k in keys)
+                                or any(old_eps.get(k)!=new_eps.get(k) for k in ('value','period_end','period_type'))):
+                                bridge['review_status']='unreviewed'
+                                bridge['invalidation_reason']='EPS components, value or period changed; review the saved calculation again'
                     write(ROOT / "runtime/revisions" / f"{destination.stem}-{uuid.uuid4().hex}.json", previous)
                     write(destination, data)
                 return self.send(200, {"data": data, "revision": revision(data)})

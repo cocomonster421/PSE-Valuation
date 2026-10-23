@@ -120,6 +120,14 @@ def main():
                 assert page.locator("#save-scenario").is_disabled()
                 assert not page.locator("#confirmed").is_checked()
                 page.locator("#edit-stock").click()
+                page.locator('#eps-evidence summary').click()
+                for key,value in dict(annual_eps='10',current_ytd_eps='6',prior_ytd_eps='4',annual_end='2025-12-31',current_ytd_end='2026-06-30',prior_ytd_end='2025-06-30').items():
+                    page.locator('#eps-'+key).fill(value)
+                page.locator('#eps-use-total').click()
+                expect(page.locator('#baseline-eps')).to_have_value('12')
+                page.locator('#eps-review-status').select_option('reconciled')
+                page.locator('#eps-reviewed_on').fill('2026-10-23')
+                page.locator('#eps-review-note').fill('Synthetic fixture: stable share count and no restatements')
                 page.locator("#baseline-shares").fill("216000000")
                 page.locator("#baseline-date-shares").fill("2026-10-21")
                 page.locator("#baseline-note-shares").fill("Browser QA edit; temporary data only")
@@ -134,6 +142,8 @@ def main():
                 page.get_by_role("button", name="Save company data", exact=True).click()
                 page.locator("#stock-editor").wait_for(state="hidden")
                 updated = server.read(test_root / "brain/TEL.toml")
+                assert updated['fields']['eps']['eps_bridge']['review_status']=='unreviewed'
+                assert updated['fields']['eps']['value']==12
                 assert updated["fields"]["shares"]["value"] == 216000000
                 assert updated["models"]["ddm"]["discount_rate"] == .13
                 assert list((test_root / "runtime/revisions").glob("*.json"))
@@ -146,7 +156,19 @@ def main():
                 expect(page.locator('[data-model="ddm"] [data-model-note]')).to_have_value('Temporary research basis: return and growth scenarios explained')
                 expect(page.locator('[data-model="ddm"] [data-model-evidence]')).to_have_value('documented')
                 expect(page.locator('#reporting-status')).to_have_value('reconciled')
-                page.locator("#close-stock-editor").click()
+                page.locator('#eps-evidence summary').click()
+                expect(page.locator('#eps-annual_eps')).to_have_value('10')
+                expect(page.locator('#eps-review-status')).to_have_value('unreviewed')
+                page.locator('#eps-review-status').select_option('reconciled')
+                page.get_by_role('button',name='Save company data',exact=True).click()
+                page.locator('#stock-editor').wait_for(state='hidden')
+                assert server.read(test_root/'brain/TEL.toml')['fields']['eps']['eps_bridge']['review_status']=='reconciled'
+                page.locator('#edit-stock').click()
+                page.locator('#eps-evidence summary').click()
+                page.locator('#eps-annual_eps').fill('11')
+                page.get_by_role('button',name='Save company data',exact=True).click()
+                page.locator('#stock-editor').wait_for(state='hidden')
+                assert server.read(test_root/'brain/TEL.toml')['fields']['eps']['eps_bridge']['review_status']=='unreviewed'
                 page.locator("#method").select_option("ddm")
                 expect(page.locator("#input-discount_rate")).to_have_value("13")
                 page.locator("#advanced-methods").check()

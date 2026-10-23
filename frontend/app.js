@@ -427,6 +427,7 @@ function openStockEditor() {
     periodRow.innerHTML=`<label for="baseline-duration-${escapeHtml(key)}">Period covered</label><select id="baseline-duration-${escapeHtml(key)}" data-property="period_type"><option value="unknown">Unknown / needs checking</option><option value="annual">Full financial year</option><option value="ttm">Trailing 12 months</option><option value="quarter">Single quarter</option><option value="ytd">Year to date (partial year)</option><option value="point_in_time">Balance at one date</option></select><p class="help">EPS, dividends and cash flows need a full-year or trailing-year basis. Book value, debt and share counts are balances at a date.</p>`;
     periodRow.querySelector('select').value=original.period_type || "unknown";
     fieldset.querySelector('.fields').append(periodRow);
+    if(key==='eps') renderEpsEvidence(fieldset, original);
     fieldset.addEventListener("input", () => fieldset.dataset.changed = "true");
     fieldset.addEventListener("change", () => fieldset.dataset.changed = "true");
     $("stock-editor-fields").append(fieldset);
@@ -460,6 +461,13 @@ $("stock-editor-form").onsubmit = async event => {
       const field = {...(data.fields[key] || {})};
       for (const input of group.querySelectorAll("[data-property]")) {
         field[input.dataset.property] = input.dataset.property === "value" ? (input.value === "" ? null : Number(input.value) / (policyRecord.data.fields[key].unit === "rate" ? 100 : 1)) : input.value;
+      }
+      if(key==='eps' && group.querySelector('[data-eps-key]')) {
+        const bridge={...(field.eps_bridge || {})};
+        for(const input of group.querySelectorAll('[data-eps-key]')) {
+          bridge[input.dataset.epsKey]=input.type==='number' ? (input.value===''?null:Number(input.value)) : input.value;
+        }
+        if(Object.values(bridge).some(value=>value!==null && value!=='' && value!=='unreviewed')) field.eps_bridge=bridge;
       }
       field.updated_at = new Date().toISOString(); data.fields[key] = field;
     }
@@ -676,4 +684,30 @@ function renderCashStatementHelper(){
       $('scenario-notes').value+='\nCash-flow reconciliation: '+JSON.stringify(basis);
     }catch(error){if(version===inputVersion && submittedBridgeVersion===bridgeVersion && wrapper.isConnected)$('bridge-result').textContent=error.message;}
   };
+}
+
+function renderEpsEvidence(fieldset, original) {
+  const bridge=original.eps_bridge || {}, panel=document.createElement('details');
+  panel.id='eps-evidence';
+  panel.innerHTML='<summary>Trailing-year EPS calculation and review</summary><p class="help">For December year ends: annual EPS + current year-to-date EPS − prior year-to-date EPS. Use matching basic EPS and review share changes and restatements. Saving changed figures resets the review; reopen to record a new review.</p><div class="fields"></div>';
+  for(const [key,label,type] of [
+    ['annual_eps','Previous full-year basic EPS','number'],['annual_end','Full-year end','date'],
+    ['current_ytd_eps','Current year-to-date basic EPS','number'],['current_ytd_end','Current YTD end','date'],
+    ['prior_ytd_eps','Prior year-to-date basic EPS','number'],['prior_ytd_end','Prior YTD end','date'],
+    ['reviewed_on','Comparability review date','date']]) {
+    const row=document.createElement('label');row.textContent=label;
+    const input=document.createElement('input');input.type=type;input.step='any';input.id='eps-'+key;input.dataset.epsKey=key;input.value=bridge[key]??'';row.append(input);panel.querySelector('.fields').append(row);
+  }
+  const review=document.createElement('div');
+  review.innerHTML='<label>Share basis and revisions<select id="eps-review-status" data-eps-key="review_status"><option value="unreviewed">Not reconciled</option><option value="reconciled">Reconciled by me</option></select></label><label>Sources and comparability explanation<textarea id="eps-review-note" data-eps-key="review_note" rows="3"></textarea></label><button type="button" id="eps-use-total" class="quiet">Use calculated trailing EPS</button><p id="eps-total-message" role="status"></p>';
+  panel.append(review);review.querySelector('select').value=bridge.review_status || 'unreviewed';review.querySelector('textarea').value=bridge.review_note || '';
+  review.querySelector('button').onclick=()=>{
+    const values=['annual_eps','current_ytd_eps','prior_ytd_eps'].map(key=>panel.querySelector('#eps-'+key).value);
+    if(values.some(value=>value==='' || !Number.isFinite(Number(value)))) {panel.querySelector('#eps-total-message').textContent='Enter all three EPS figures.';return;}
+    const total=Number(values[0])+Number(values[1])-Number(values[2]);
+    $('baseline-eps').value=Number(total.toPrecision(12));$('baseline-duration-eps').value='ttm';$('baseline-period-eps').value=panel.querySelector('#eps-current_ytd_end').value;
+    $('baseline-status-eps').value='needs_review';review.querySelector('select').value='unreviewed';fieldset.dataset.changed='true';
+    panel.querySelector('#eps-total-message').textContent=`${values[0]} + ${values[1]} − ${values[2]} = ${numeric(total)}. Applied; check dates and share basis before relying on it.`;
+  };
+  fieldset.append(panel);
 }
