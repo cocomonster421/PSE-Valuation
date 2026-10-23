@@ -67,3 +67,12 @@ the published research case and checks sensitivity direction.
 payments, equivalence to FCFE under full distribution and identical growth/risk,
 and independence of model value from the reference market price. The TEL replay
 verifies arithmetic only; its source-review qualification remains separate.
+
+## Bank example walkthrough
+
+The browser check opens **BDO bank example**, checks the FY2025 inputs and visible
+historical-scenario qualification, calculates PHP 145.48, and saves the analysis.
+It checks that source notes and ROE survive saving and that the BDO company file
+is byte-for-byte unchanged. The package verifier also checks the bundled example
+endpoint. These checks establish workflow and calculation reproducibility, not
+the forecasting quality of the selected return, growth or ROE assumptions.

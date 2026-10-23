@@ -52,6 +52,12 @@ In the app, click **Open TEL research case**, review the dated inputs, then
 **Calculate fair value**. This leaves your company data unchanged and includes
 the source qualifications in saved analysis notes.
 
+For a bank example, click **Open BDO bank example**. It loads FY2025 common book
+value and an illustrative return-on-equity scenario, producing PHP 145.48 with
+the supplied assumptions. The [BDO study](docs/BDO_CASE_STUDY.md) checks the result
+against dividend and residual-income models and explains the implied payout.
+This is a retrospective model comparison, not a current investment target.
+
 Reproduce the case with Python alone:
 
 ```sh
@@ -62,7 +68,8 @@ python scripts/replay_tel_case.py
 
 The test badge links to actual GitHub Actions results. The workflow runs on Linux
 and Windows with Python 3.11 and 3.14; it tests formulas, validation and APIs, replays
-the TEL case, and starts an extracted release independently.
+the TEL and BDO cases, checks AC's incomplete source worksheet, and starts an
+extracted release independently.
 
 - **DCF correctness:** a closed-form growing-annuity check, a zero-growth perpetuity,
   share-count scaling and the enterprise-to-equity debt bridge.

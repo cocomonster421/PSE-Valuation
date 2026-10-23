@@ -96,6 +96,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if path == "/api/examples/tel":
                 return self.send(200,read(ROOT / "examples/tel_case.json"))
+            if path == "/api/examples/bdo":
+                return self.send(200,read(ROOT / "examples/bdo_case.json"))
             if path == "/api/review-all":
                 policy=read(ROOT / "policies/catalog.json")
                 self.validate_policy(policy)

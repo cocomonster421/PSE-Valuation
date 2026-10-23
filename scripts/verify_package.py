@@ -55,6 +55,10 @@ def main():
                 assert not company['history']
             with urllib.request.urlopen(base + "/api/stocks/DEMO", timeout=5) as response:
                 assert json.load(response)['data']['fields']['eps']['value']==5
+            with urllib.request.urlopen(base + "/api/examples/bdo", timeout=5) as response:
+                example=json.load(response)
+                assert example['reported']['bvps']==119.03
+                assert example['financial_period_end']=='2025-12-31'
             occupied=subprocess.run([sys.executable,"run.py","--port",str(port)],cwd=destination,capture_output=True,text=True,timeout=10)
             assert "Cannot start on port" in occupied.stdout
             print("PASS: public archive, extracted tests/example, standalone run.py, UI, health, 61 blank companies and synthetic DEMO; no research histories")

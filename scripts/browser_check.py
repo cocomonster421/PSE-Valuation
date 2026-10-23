@@ -311,6 +311,23 @@ def main():
                 research_saved=next(json.loads(p.read_text(encoding='utf-8')) for p in (test_root/'scenarios').glob('*.json') if json.loads(p.read_text(encoding='utf-8'))['name']=='TEL research case · 2026-10-22')
                 assert 'annual_source_comparison' in research_saved['notes']
                 assert (test_root/'brain/TEL.toml').read_bytes()==original_tel
+                original_bdo=(test_root/'brain/BDO.toml').read_bytes()
+                page.locator('#try-bdo-case').click()
+                expect(page.locator('#method')).to_have_value('justified_pb')
+                expect(page.locator('#input-bvps')).to_have_value('119.03')
+                expect(page.locator('#research-case')).to_contain_text('not a contemporaneous trade or current target')
+                expect(page.locator('#confirmed')).not_to_be_checked()
+                page.locator('#confirmed').check()
+                page.get_by_role('button',name='Calculate fair value').click()
+                expect(page.locator('.fair-value')).to_contain_text('145.48')
+                assert 'property dividend' in page.locator('#scenario-notes').input_value()
+                with page.expect_response(lambda response: response.url.endswith('/api/scenarios') and response.request.method=='POST') as bdo_save:
+                    page.locator('#save-scenario').click()
+                assert bdo_save.value.status==201
+                bdo_saved=next(json.loads(p.read_text(encoding='utf-8')) for p in (test_root/'scenarios').glob('*.json') if json.loads(p.read_text(encoding='utf-8'))['name']=='BDO bank example · 2025-12-31')
+                assert 'share_information' in bdo_saved['notes']
+                assert abs(bdo_saved['result']['inputs']['roe']-.14)<1e-12
+                assert (test_root/'brain/BDO.toml').read_bytes()==original_bdo
                 page.locator('#try-demo').click()
                 expect(page.locator('#research-case')).to_be_hidden()
                 # Reconcile the same annual cash statement under both cash-flow models.

@@ -755,3 +755,26 @@ $('try-tel-case').onclick=async()=>{
     status('TEL case loaded. Review inputs before calculating.');
   }catch(error){status(error.message);}finally{button.disabled=false;}
 };
+
+$('try-bdo-case').onclick=async()=>{
+  const button=$('try-bdo-case');button.disabled=true;
+  try {
+    const startRequest=stockRequest;
+    const example=await api('/api/examples/bdo');
+    if(startRequest!==stockRequest)return;
+    const expectedRequest=stockRequest+1;
+    await chooseStock('BDO');
+    if(stockRequest!==expectedRequest)return;
+    $('advanced-methods').checked=true;
+    renderMethods('justified_pb');
+    renderFields({bvps:example.reported.bvps,roe:example.assumptions.roe,
+      discount_rate:example.assumptions.discount_rate,terminal_growth:example.assumptions.terminal_growth,
+      price:example.reported.period_end_price});
+    $('method-readiness').textContent='Historical bank example loaded. Review assumptions, then calculate.';
+    $('scenario-name').value='BDO bank example · '+example.financial_period_end;
+    $('scenario-notes').value=JSON.stringify({research_case:example.title,...example},null,2);
+    const panel=$('research-case');panel.hidden=false;
+    panel.innerHTML=`<h2>BDO bank example · ${escapeHtml(example.financial_period_end)}</h2><p class="warning">${escapeHtml(example.scope)}</p><p>Historical reference price: ${peso(example.reported.period_end_price)}. Book value per common share: ${peso(example.reported.bvps)}.</p><details><summary>Sources and assumptions</summary><p>${escapeHtml(example.assumptions.roe_basis)}</p><p>${escapeHtml(example.assumptions.return_basis)}</p><p>${escapeHtml(example.assumptions.growth_basis)}</p><p>${safeLink(example.sources.share_information,'Common equity and share information ↗')} · ${safeLink(example.sources.results,'Annual results ↗')}</p>${example.limitations.map(note=>`<p>${escapeHtml(note)}</p>`).join('')}</details><p class="help">Scenario inputs leave your company brain unchanged. Sources, assumptions and limitations are included in saved analysis notes.</p>`;
+    status('BDO example loaded. Review inputs before calculating.');
+  }catch(error){status(error.message);}finally{button.disabled=false;}
+};

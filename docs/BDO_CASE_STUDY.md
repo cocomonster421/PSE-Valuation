@@ -71,8 +71,13 @@ are feasible, this model cannot support a target.
 python scripts/replay_bdo_case.py
 ```
 
-Edit [the case inputs](../examples/bdo_case.json) to experiment. In the app select
-BDO, enable Advanced methods, and choose justified P/B with the inputs above.
+In the app, click **Open BDO bank example**, inspect **Sources and assumptions**,
+confirm the inputs and click **Calculate fair value**. This loads justified P/B
+with the dated figures above; the result should be PHP 145.48. Change ROE or the
+required return to inspect the sensitivity. Saved analyses retain the source links
+and qualifications in their notes. Loading the example does not change your brain.
+
+Edit [the case inputs](../examples/bdo_case.json) to change the bundled example.
 For residual income use payout 78.57142857%. The company brain remains unchanged
 unless you explicitly save company data.
 
