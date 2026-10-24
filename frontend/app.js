@@ -477,7 +477,9 @@ $("stock-editor-form").onsubmit = async event => {
     const saved=await api(`/api/stocks/${data.ticker}`, {data, revision:stockRecord.revision});
     stocks = await api("/api/stocks");
     await chooseStock(data.ticker); $("stock-editor").close();
-    status(saved.financial_review_reset ? "Company data saved. Changed financial inputs need a new review. Reopen Edit company data to review the saved figures; unresolved reporting issues remain open." : "Company data saved. Previous version backed up; valuation inputs refreshed.");
+    const messages=[saved.financial_review_reset ? "Company data saved. Changed financial inputs need a new review. Reopen Edit company data to review the saved figures; unresolved reporting issues remain open." : "Company data saved. Previous version backed up; valuation inputs refreshed."];
+    if(saved.assumption_review_reset?.length)messages.push('Changed assumptions kept the old explanation and are now illustrative. Review their basis in Edit company data before marking them documented.');
+    status(messages.join(' '));
   } catch(error) {$("stock-editor-error").textContent = error.message;}
 };
 

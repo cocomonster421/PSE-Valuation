@@ -53,7 +53,7 @@
 
 ## Remaining
 
-As of 24 October 2026, the regression suite has 100 passing tests. This establishes
+As of 24 October 2026, the regression suite has 101 passing tests. This establishes
 tested software behavior, not the accuracy of every company's fair value.
 
 - [x] Reproduce the BDO bank example using justified P/B, dividend discounting and
@@ -98,6 +98,12 @@ Open **Edit company data**. Under **Valuation assumptions**, explain each saved
 assumption, enter the review date and choose **Basis documented by me**. Changing
 an input on the valuation screen does not inherit documentation for a different
 saved value. Documentation is a user's record, not independent verification.
+
+Changing a saved assumption while retaining its old explanation resets that
+method's evidence status to illustrative. Updating the date alone does not avoid
+the reset. Record a new explanation for the changed inputs, or review the saved
+unchanged values in a later save before marking them documented. The app detects
+unchanged text; it cannot judge whether a new explanation is financially sound.
 
 Under **Reporting review**, record any unresolved disclosure or revision. Change
 it to **Issue reconciled by me** only after checking the affected figures, with a

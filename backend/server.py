@@ -367,12 +367,19 @@ class Handler(BaseHTTPRequestHandler):
                     ticker = safe_id(path.rsplit("/", 1)[1])
                     self.validate_stock(data, ticker)
                     destination = stock_path(ROOT, ticker)
-                changed=[]
+                changed=[]; assumption_resets=[]
                 with LOCK:
                     previous = read(destination)
                     if payload.get("revision") != revision(previous):
                         return self.send(409, {"error": "This file changed. Reload it before saving to avoid overwriting another edit."})
                     if path.startswith('/api/stocks/'):
+                        for method,model in data.get('models',{}).items():
+                            old_model=previous.get('models',{}).get(method,{})
+                            values_changed=any(old_model.get(k)!=model.get(k) for k in METHODS[method][1])
+                            same_basis=old_model.get('note','').strip()==model.get('note','').strip()
+                            if values_changed and same_basis and model.get('evidence_status')=='documented':
+                                model['evidence_status']='illustrative'
+                                assumption_resets.append(method)
                         evidence_keys=('value','period_end','period_type','unit','scale','as_of',
                                        'source_url','source_file','source_hash','source_page',
                                        'cash_flow_reconciliation','sotp_components')
@@ -406,7 +413,8 @@ class Handler(BaseHTTPRequestHandler):
                                 bridge['invalidation_reason']='EPS components, value or period changed; review the saved calculation again'
                     write(ROOT / "runtime/revisions" / f"{destination.stem}-{uuid.uuid4().hex}.json", previous)
                     write(destination, data)
-                return self.send(200, {"data": data, "revision": revision(data), "financial_review_reset":bool(changed)})
+                return self.send(200, {"data": data, "revision": revision(data), "financial_review_reset":bool(changed),
+                                       "assumption_review_reset":assumption_resets})
             self.send(404, {"error": "Not found"})
         except (ValueError, KeyError, TypeError, OverflowError, FileNotFoundError) as error:
             self.send(400, {"error": str(error)})

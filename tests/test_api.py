@@ -140,6 +140,28 @@ class LocalAPITests(unittest.TestCase):
         _,priced=self.request('/api/stocks/EDITSTATE',reviewed)
         self.assertEqual(priced['data']['reports']['review_status'],'reviewed')
 
+    def test_changed_assumption_cannot_reuse_old_documentation(self):
+        stock={'ticker':'BASIS','name':'Assumption fixture','industry':'Test','currency':'PHP',
+               'fields':{},'reports':{'review_status':'reviewed','review_note':'Financials checked'},
+               'models':{'pe':{'multiple':10,'note':'Original peer comparison','as_of':'2026-10-23','evidence_status':'documented'}}}
+        server.write(server.ROOT/'stock_data/BASIS.json',stock)
+        _,record=self.request('/api/stocks/BASIS')
+        record['data']['models']['pe'].update(multiple=12,as_of='2026-10-24')
+        code,saved=self.request('/api/stocks/BASIS',record)
+        self.assertEqual(code,200,saved)
+        self.assertEqual(saved['assumption_review_reset'],['pe'])
+        self.assertEqual(saved['data']['models']['pe']['evidence_status'],'illustrative')
+        self.assertEqual(saved['data']['reports']['review_status'],'reviewed')
+        # An explicit later review of the unchanged assumption is allowed.
+        saved['data']['models']['pe']['evidence_status']='documented'
+        _,reviewed=self.request('/api/stocks/BASIS',saved)
+        self.assertEqual(reviewed['assumption_review_reset'],[])
+        self.assertEqual(reviewed['data']['models']['pe']['evidence_status'],'documented')
+        # A new value with a new explanation is an explicit new basis declaration.
+        reviewed['data']['models']['pe'].update(multiple=11,note='Updated peer sample supports eleven times earnings')
+        _,rebased=self.request('/api/stocks/BASIS',reviewed)
+        self.assertEqual(rebased['data']['models']['pe']['evidence_status'],'documented')
+
     def test_calculation_and_confirmation(self):
         body = {"method": "ddm", "inputs": {"dividend": 10, "discount_rate": .12, "terminal_growth": .02}}
         self.assertEqual(self.request("/api/calculate", body)[0], 400)
