@@ -6,7 +6,7 @@ that the platform produces independently validated investment targets.
 
 ## Current evidence
 
-- 101 automated tests passed from a newly extracted public archive.
+- 102 automated tests passed from a newly extracted public archive.
 - The archive started through `run.py`; health, UI and occupied-port checks passed.
 - A fresh-package Edge walkthrough completed with zero page errors and zero
   external browser requests. Blank URC inputs were blocked; synthetic P/E, DCF,
@@ -18,7 +18,7 @@ that the platform produces independently validated investment targets.
   byte-for-byte unchanged. Its modeled payout is not a declared dividend.
 - Local browser regressions also verified cash-flow and SOTP component baseline
   saving, source evidence restoration, and financial/assumption review resets.
-- [GitHub Actions for commit `5bf132e`](https://github.com/cocomonster421/PSE-Valuation/actions/runs/40056209229)
+- [GitHub Actions for commit `b0a40f1`](https://github.com/cocomonster421/PSE-Valuation/actions/runs/40056747481)
   completed successfully on all four Linux/Windows and Python 3.11/3.14 jobs.
   Browser checks are separate local checks and are not covered by that badge.
 - The release contains 61 blank real-company brains and a synthetic DEMO; private
@@ -41,17 +41,23 @@ The walkthrough records local evidence under `runtime/user-walkthrough/`.
 | Demonstrate reliability across company types | Bank model replay, AC ownership/claims worksheet, cash-flow and SOTP helpers | Bank arithmetic and common equity reconciled; complete operating-company and holding-company valuations remain unfinished |
 | GitHub presentation and reuse | README, screenshots, CI workflow and MIT license | Present; source rights and data exclusions documented |
 
-## Remaining completion gates
+## Release decision and boundaries
 
-- Resolve the earnings-series comparability used in a real valuation, or use a
-  separate company with traceable comparable financials for the completed example.
-- Demonstrate a report-to-cash-flow reconciliation with company-specific interest,
-  leases, investment, financing and ownership treatment.
-- Support forecast and discount-rate assumptions with dated reasoning, and compare
-  the result against another appropriate valuation method.
-- Complete the holding-company valuation using dated attributable component values,
-  matched common shares and remaining parent claims. AC's source-scope check and
-  the app's component helper are complete; the real component values are not.
+The release scope is a manual offline valuation tool with one reproducible worked
+example, not completed investment coverage across company types. BDO is the primary
+modeling demonstration: its historical common equity is sourced, its forward
+assumptions are illustrative, and its payout limitation remains explicit. TEL
+illustrates unresolved source evidence; AC remains an incomplete worksheet.
+
+The final release checks cover calculations, missing-input handling, local editing,
+save/load/export, source qualifications, offline browser behavior and the public
+archive. No blocking defect was found in these checks. Further company research is
+tracked in the [non-blocking backlog](../TODO.md#research-backlog-non-blocking).
+
+A full operating-company cash-flow case, AC's remaining unlisted values and claims,
+and calibrated forecast/required-return assumptions would strengthen investment
+research. They are not prerequisites for releasing this manual tool. Do not interpret
+passing software checks as validation of a price target.
 
 ## Research and workflow changes since the previous audit
 

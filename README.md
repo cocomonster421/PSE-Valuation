@@ -15,8 +15,8 @@ compare valuations, and save the inputs behind the result. Calculations run loca
 The project covers valuation-workflow requirements, model selection, a Python
 calculation backend, a JavaScript interface, report-import review and regression testing.
 
-[Read the TEL research case](docs/TEL_CASE_STUDY.md) ·
-[Inspect the BDO bank-model example](docs/BDO_CASE_STUDY.md) ·
+[Start with the BDO worked example](docs/BDO_CASE_STUDY.md) ·
+[Inspect the TEL source-review case](docs/TEL_CASE_STUDY.md) ·
 [Review AC ownership and claims](docs/AC_SCOPE_REVIEW.md) ·
 [See test coverage](docs/VERIFICATION.md) ·
 [Run locally](#getting-started)
@@ -32,37 +32,50 @@ Actual application screenshot using the dated TEL case inputs. The price is a sa
 | --- | --- |
 | ![TEL sensitivity analysis](docs/screenshots/tel-sensitivity.png) | ![Source notes beside editable inputs](docs/screenshots/tel-sources.png) |
 
-## One investment question: does TEL's dividend justify its price?
+## Start here: BDO worked example
 
-The [TEL case study](docs/TEL_CASE_STUDY.md) distinguishes FY2025's earnings-year
-dividend from the latest twelve-month payments, rolls reported EPS forward, and
-explains why a dividend model is used rather than an unsupported enterprise DCF.
+In the app, click **Open BDO bank example**, review the inputs, then
+**Calculate fair value**. Change an assumption to inspect sensitivity, then save
+or export the analysis. Your company brain is unchanged by opening the example.
 
-| Dated reference price | Illustrative dividend scenario | Analytical conclusion |
+| Sourced starting point | Explicit scenario assumptions | Conditional result |
 | --- | --- | --- |
-| PHP 1,190, 22 Oct 2026 at 14:50 | PHP 844.73 at a 12% required return and 1% growth | A conditional scenario, not an established TEL price target. Required return and dividend growth still need independent calibration. |
+| FY2025 common book value of PHP 119.03 per share | 14% sustainable ROE, 12% required return, 3% growth | PHP 145.48 per share |
 
-The report includes primary-source links, a 15-cell sensitivity table, risks and
-reverse calculations showing what the reference price implies. Its data is frozen
-in [a separate case file](examples/tel_case.json). An unresolved annual EPS conflict
-is documented; the earnings ratios remain provisional. Real-company working templates
-remain blank. No reports are redistributed.
-
-In the app, click **Open TEL research case**, review the dated inputs, then
-**Calculate fair value**. This leaves your company data unchanged and includes
-the source qualifications in saved analysis notes.
-
-For a bank example, click **Open BDO bank example**. It loads FY2025 common book
-value and an illustrative return-on-equity scenario, producing PHP 145.48 with
-the supplied assumptions. The [BDO study](docs/BDO_CASE_STUDY.md) checks the result
-against dividend and residual-income models and explains the implied payout.
-This is a retrospective model comparison, not a current investment target.
-
-Reproduce the case with Python alone:
+The [worked example](docs/BDO_CASE_STUDY.md) traces common equity to audited
+statements, shows the formula and sensitivity table, and compares consistent
+book-value, dividend and residual-income models. Their agreement checks model
+consistency; it is not independent evidence that the assumptions are correct.
+The implied payout exceeds the regular cash-dividend policy. Additional
+capital distributions would need support before treating this as an investment
+target. This is a retrospective modeling demonstration with illustrative forward
+assumptions, not a current recommendation.
 
 ```sh
-python scripts/replay_tel_case.py
+python scripts/replay_bdo_case.py
 ```
+
+### Additional research examples
+
+- **TEL:** [source-review case](docs/TEL_CASE_STUDY.md), available through
+  **Open TEL research case**. Its dated dividend scenario reproduces PHP 844.73,
+  while unresolved annual EPS and reporting qualifications remain visible.
+- **AC:** [incomplete ownership worksheet](docs/AC_SCOPE_REVIEW.md). Six dated
+  listed holdings reproduce a partial subtotal; missing assets and claims prevent
+  a complete fair value.
+
+The public release includes 61 blank real-company templates and a synthetic DEMO.
+The compact examples retain their sources and limitations; downloaded reports and
+private working research are excluded.
+
+## Release scope
+
+This release is an offline manual valuation tool. It checks calculations and
+surfaces input problems; source interpretation and forecast judgment remain with
+the user. BDO is the primary worked demonstration. Completing TEL, AC or a research
+coverage universe is not required to use the tool. See the
+[release audit](docs/FINAL_USER_AUDIT.md) for tested workflows and the
+[backlog](TODO.md#research-backlog-non-blocking) for further research.
 
 ## Reliability you can inspect
 

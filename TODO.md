@@ -11,6 +11,17 @@ Items are checked only after implementation and verification. Local company data
 - [x] 7. Verify isolated installation, launch, offline use and error recovery on Windows.
 - [x] 8. Finish GitHub materials: walkthrough, examples, formula sources, data exclusions and MIT license.
 
+## Frozen release audit — 24 October 2026
+
+- [x] Freeze features and distinguish software acceptance from company research.
+- [x] Lead the README with the BDO worked example and its assumptions.
+- [x] Run 102 tests from the public archive and check standalone startup.
+- [x] Complete offline Edge regressions and a fresh-package walkthrough.
+- [x] Verify save/load/export, input blocking and preserved source qualifications.
+- [x] Record limitations and move additional company research to the backlog.
+
+No blocking defect was found in this audit.
+
 ## Verification boundaries
 
 A clean virtual environment and extracted archive can be checked on this laptop. A separate physical Windows machine and first-time human usability session cannot be claimed from those tests.
@@ -27,14 +38,21 @@ A clean virtual environment and extracted archive can be checked on this laptop.
 - Readiness/source metadata: tests/test_review.py.
 - Guided DCF and saved helper trail: scripts/browser_check.py, synthetic DEMO verifies PHP 60 P/E and PHP 48 DCF.
 
-- Isolated Windows verification: clean Python 3.14 environment, pinned parser dependencies, extracted public archive, 101 tests, health/UI/company reads and occupied-port recovery passed on 24 October 2026.
+- Isolated Windows verification: clean Python 3.14 environment, pinned parser dependencies, extracted public archive, 102 tests, health/UI/company reads and occupied-port recovery passed on 24 October 2026.
 - Public archive: MIT, blank real-company templates, synthetic DEMO, no private research histories or report PDFs.
 - JavaScript syntax and offline Edge workflow passed; no browser page errors or external requests.
 
-## Remaining research
+## Research backlog (non-blocking)
 
 - [x] Record AC's six listed holdings with dated ownership and market values; replay the PHP 587.5699 billion partial subtotal and document Mynt/Globe overlap.
 - [ ] Complete AC's unlisted assets, remaining parent claims, matched common shares and supported holding discount before publishing a fair value.
+
+- [ ] Complete an operating-company report-to-cash-flow research case.
+- [ ] Develop dated forecast and required-return research for investment targets.
+- [ ] Resolve TEL reporting comparability before promoting provisional earnings ratios.
+
+These are research extensions, not software release gates. Feature scope is frozen;
+future changes should address reproducible defects or a separately selected enhancement.
 
 The checked implementation tasks above do not establish completed investment
 research. [The release audit](docs/FINAL_USER_AUDIT.md) records the remaining
