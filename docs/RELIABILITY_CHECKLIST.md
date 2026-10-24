@@ -15,6 +15,10 @@
 - [x] Applying financial imports invalidates an earlier reporting review and records
   affected fields and time. Existing unresolved issues and prior review notes persist.
   Previewing a report or importing only a price does not reset financial review.
+- [x] Manual company-file saves through the app/API also reset review when financial
+  values, periods, units or source references change. Changed figures become
+  `needs_review`; prior unresolved reporting status survives the edit. A subsequent
+  review-only save is allowed. Price-only edits do not invalidate financial review.
 - [x] Record annual, trailing-year, quarter, YTD or point-in-time periods explicitly.
   Flag nonannual or unknown flow inputs, including cash-flow helper sources. Generic
   imports no longer claim annual coverage from an end date alone.
@@ -49,7 +53,7 @@
 
 ## Remaining
 
-As of 23 October 2026, the regression suite has 98 passing tests. This establishes
+As of 24 October 2026, the regression suite has 100 passing tests. This establishes
 tested software behavior, not the accuracy of every company's fair value.
 
 - [x] Reproduce the BDO bank example using justified P/B, dividend discounting and
@@ -100,8 +104,17 @@ it to **Issue reconciled by me** only after checking the affected figures, with 
 date and explanation. Reviews older than 90 days are flagged. These thresholds
 are review reminders, not guarantees that newer data is reliable.
 
+When you change a financial value, period, units or source reference, save it first.
+The save message identifies that a new review is required. Reopen **Edit company
+data**, inspect the saved figures, then record the appropriate field and reporting
+review statuses. A review-only save does not reset itself. Clearing a prior
+reporting issue in the same save as changing financial facts is not accepted.
+
 Offline checks cannot discover new disclosures that have not been downloaded or
 recorded. Blank company templates remain blank; these checks do not fabricate data.
+Direct external TOML edits bypass API save-time invalidation. Review changed facts
+and their statuses yourself when editing files outside the app; offline arithmetic
+and evidence checks still run, but a review label is not tamper-proof certification.
 The arithmetic can be tested independently, but forecast confidence must be judged
 company by company using evidence, sensitivity and model suitability.
 

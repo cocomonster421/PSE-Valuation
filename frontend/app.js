@@ -474,10 +474,10 @@ $("stock-editor-form").onsubmit = async event => {
       }
       field.updated_at = new Date().toISOString(); data.fields[key] = field;
     }
-    await api(`/api/stocks/${data.ticker}`, {data, revision:stockRecord.revision});
+    const saved=await api(`/api/stocks/${data.ticker}`, {data, revision:stockRecord.revision});
     stocks = await api("/api/stocks");
     await chooseStock(data.ticker); $("stock-editor").close();
-    status("Company data saved. Previous version backed up; valuation inputs refreshed.");
+    status(saved.financial_review_reset ? "Company data saved. Changed financial inputs need a new review. Reopen Edit company data to review the saved figures; unresolved reporting issues remain open." : "Company data saved. Previous version backed up; valuation inputs refreshed.");
   } catch(error) {$("stock-editor-error").textContent = error.message;}
 };
 

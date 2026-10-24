@@ -142,6 +142,7 @@ def main():
                 page.get_by_role("button", name="Save company data", exact=True).click()
                 page.locator("#stock-editor").wait_for(state="hidden")
                 updated = server.read(test_root / "brain/TEL.toml")
+                expect(page.locator('#status')).to_contain_text('Changed financial inputs need a new review')
                 assert updated['fields']['eps']['eps_bridge']['review_status']=='unreviewed'
                 assert updated['fields']['eps']['value']==12
                 assert updated["fields"]["shares"]["value"] == 216000000
@@ -155,7 +156,10 @@ def main():
                 expect(page.locator('#baseline-duration-shares')).to_have_value('point_in_time')
                 expect(page.locator('[data-model="ddm"] [data-model-note]')).to_have_value('Temporary research basis: return and growth scenarios explained')
                 expect(page.locator('[data-model="ddm"] [data-model-evidence]')).to_have_value('documented')
-                expect(page.locator('#reporting-status')).to_have_value('reconciled')
+                expect(page.locator('#reporting-status')).to_have_value('unresolved')
+                # Changed facts cannot simultaneously clear an earlier reporting issue.
+                # Re-review the now-saved inputs in a separate save.
+                page.locator('#reporting-status').select_option('reconciled')
                 page.locator('#eps-evidence summary').click()
                 expect(page.locator('#eps-annual_eps')).to_have_value('10')
                 expect(page.locator('#eps-review-status')).to_have_value('unreviewed')
@@ -163,6 +167,7 @@ def main():
                 page.get_by_role('button',name='Save company data',exact=True).click()
                 page.locator('#stock-editor').wait_for(state='hidden')
                 assert server.read(test_root/'brain/TEL.toml')['fields']['eps']['eps_bridge']['review_status']=='reconciled'
+                assert server.read(test_root/'brain/TEL.toml')['reports']['review_status']=='reconciled'
                 page.locator('#edit-stock').click()
                 page.locator('#eps-evidence summary').click()
                 page.locator('#eps-annual_eps').fill('11')

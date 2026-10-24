@@ -101,6 +101,45 @@ class LocalAPITests(unittest.TestCase):
             self.assertEqual(reloaded['data']['fields']['asset_value']['sotp_components']['one'],component())
             self.assertEqual(reloaded['data']['reports']['review_status'],'unresolved' if state=='unresolved' else 'unreviewed')
 
+    def test_changed_financial_baseline_cannot_inherit_review(self):
+        for change in ({'value':6},{'period_end':'2024-12-31'},{'unit':'PHP million'},
+                       {'source_url':'https://example.com/revised'}):
+            stock={'ticker':'FACTEDIT','name':'Fact fixture','industry':'Test','currency':'PHP',
+                   'reports':{'review_status':'reviewed','review_note':'Old evidence'},
+                   'fields':{'eps':{'value':5,'as_of':'2025-12-31','period_end':'2025-12-31',
+                                    'note':'Synthetic source','status':'reviewed'}}}
+            server.write(server.ROOT/'stock_data/FACTEDIT.json',stock)
+            _,record=self.request('/api/stocks/FACTEDIT')
+            record['data']['fields']['eps'].update(change)
+            code,saved=self.request('/api/stocks/FACTEDIT',record)
+            self.assertEqual(code,200,saved)
+            self.assertEqual(saved['data']['fields']['eps']['status'],'needs_review')
+            self.assertEqual(saved['data']['reports']['review_status'],'unreviewed')
+            self.assertEqual(saved['data']['reports']['invalidated_fields'],['eps'])
+            # A separate review of the unchanged saved facts is allowed.
+            saved['data']['fields']['eps']['status']='reviewed'
+            saved['data']['reports']['review_status']='reviewed'
+            _,reviewed=self.request('/api/stocks/FACTEDIT',saved)
+            self.assertEqual(reviewed['data']['reports']['review_status'],'reviewed')
+            self.assertEqual(reviewed['data']['fields']['eps']['status'],'reviewed')
+
+    def test_financial_edit_preserves_unresolved_and_price_only_does_not_reset(self):
+        stock={'ticker':'EDITSTATE','name':'State fixture','industry':'Test','currency':'PHP',
+               'reports':{'review_status':'unresolved','review_note':'Pending revision'},
+               'fields':{'shares':{'value':100,'as_of':'2025-12-31','note':'Fixture'},
+                         'price':{'value':10,'as_of':'2026-10-23','note':'Fixture'}}}
+        server.write(server.ROOT/'stock_data/EDITSTATE.json',stock)
+        _,record=self.request('/api/stocks/EDITSTATE')
+        record['data']['fields']['shares']['value']=200
+        record['data']['reports']['review_status']='reviewed'
+        _,saved=self.request('/api/stocks/EDITSTATE',record)
+        self.assertEqual(saved['data']['reports']['review_status'],'unresolved')
+        saved['data']['reports']['review_status']='reviewed'
+        _,reviewed=self.request('/api/stocks/EDITSTATE',saved)
+        reviewed['data']['fields']['price']['value']=11
+        _,priced=self.request('/api/stocks/EDITSTATE',reviewed)
+        self.assertEqual(priced['data']['reports']['review_status'],'reviewed')
+
     def test_calculation_and_confirmation(self):
         body = {"method": "ddm", "inputs": {"dividend": 10, "discount_rate": .12, "terminal_growth": .02}}
         self.assertEqual(self.request("/api/calculate", body)[0], 400)

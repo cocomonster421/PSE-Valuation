@@ -367,24 +367,33 @@ class Handler(BaseHTTPRequestHandler):
                     ticker = safe_id(path.rsplit("/", 1)[1])
                     self.validate_stock(data, ticker)
                     destination = stock_path(ROOT, ticker)
+                changed=[]
                 with LOCK:
                     previous = read(destination)
                     if payload.get("revision") != revision(previous):
                         return self.send(409, {"error": "This file changed. Reload it before saving to avoid overwriting another edit."})
                     if path.startswith('/api/stocks/'):
-                        old_assets=previous.get('fields',{}).get('asset_value',{})
-                        new_assets=data.get('fields',{}).get('asset_value',{})
-                        if old_assets!=new_assets and (old_assets.get('sotp_components') or new_assets.get('sotp_components')):
+                        evidence_keys=('value','period_end','period_type','unit','scale','as_of',
+                                       'source_url','source_file','source_hash','source_page',
+                                       'cash_flow_reconciliation','sotp_components')
+                        old_fields=previous.get('fields',{})
+                        new_fields=data.get('fields',{})
+                        changed=[]
+                        for key in sorted(set(old_fields)|set(new_fields)):
+                            if key=='price':
+                                continue
+                            old=old_fields.get(key,{})
+                            new=new_fields.get(key,{})
+                            if any(old.get(k)!=new.get(k) for k in evidence_keys):
+                                changed.append(key)
+                                if key in new_fields:
+                                    new_fields[key]['status']='needs_review'
+                        if changed:
                             reports=data.setdefault('reports',{})
-                            if reports.get('review_status')!='unresolved':
-                                reports['review_status']='unreviewed'
-                            reports['invalidation_reason']='Saved SOTP total or components changed; review valuations, ownership and parent claims again.'
-                        cash_keys=('fcff_cash_flow','fcfe_cash_flow')
-                        if any(previous.get('fields',{}).get(k) != data.get('fields',{}).get(k) for k in cash_keys):
-                            reports=data.setdefault('reports',{})
-                            if reports.get('review_status') != 'unresolved':
-                                reports['review_status']='unreviewed'
-                            reports['invalidation_reason']='Saved cash-flow total or reconciliation changed; review classification, period and assumptions again.'
+                            reports['review_status']=('unresolved' if previous.get('reports',{}).get('review_status')=='unresolved'
+                                                      or reports.get('review_status')=='unresolved' else 'unreviewed')
+                            reports['invalidated_fields']=changed
+                            reports['invalidation_reason']='Financial figures, periods or source evidence changed; review the saved inputs again.'
                         old_eps=previous.get('fields',{}).get('eps',{})
                         new_eps=data.get('fields',{}).get('eps',{})
                         bridge=new_eps.get('eps_bridge')
@@ -397,7 +406,7 @@ class Handler(BaseHTTPRequestHandler):
                                 bridge['invalidation_reason']='EPS components, value or period changed; review the saved calculation again'
                     write(ROOT / "runtime/revisions" / f"{destination.stem}-{uuid.uuid4().hex}.json", previous)
                     write(destination, data)
-                return self.send(200, {"data": data, "revision": revision(data)})
+                return self.send(200, {"data": data, "revision": revision(data), "financial_review_reset":bool(changed)})
             self.send(404, {"error": "Not found"})
         except (ValueError, KeyError, TypeError, OverflowError, FileNotFoundError) as error:
             self.send(400, {"error": str(error)})
