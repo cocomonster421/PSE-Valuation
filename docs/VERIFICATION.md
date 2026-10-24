@@ -20,7 +20,7 @@ remain a separate local Windows check; they are not included in this badge.
 | `python scripts/replay_bdo_case.py` | Common-book reconciliation, justified P/B, residual income/DDM consistency and ROE/return sensitivity |
 | `python scripts/replay_example.py` | Independent replay of the synthetic dividend example and sensitivity cases |
 | `python scripts/browser_check.py` | DDM/DCF, rate and cash-flow helpers, company/policy edits, imports, sensitivity, save/load/export and mobile width |
-| `python scripts/first_user_review.py` | Fresh-package onboarding, missing-data safeguards, advanced-method reopening and DCF evidence preservation |
+| `python scripts/first_user_review.py` | Fresh-package onboarding, missing-data safeguards, advanced-method reopening, DCF evidence preservation, and TEL/BDO examples without modifying their brains |
 | `python scripts/verify_package.py` | Extracted tests, example, standalone launch, health/UI, company templates and occupied-port handling |
 | `node --check frontend/app.js` | JavaScript syntax |
 

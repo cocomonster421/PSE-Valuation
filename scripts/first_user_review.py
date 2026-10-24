@@ -159,6 +159,22 @@ def main():
                 assert not errors,errors
                 assert not external,external
                 page.screenshot(path=str(evidence/'05-tel-research.png'),full_page=True)
+                original_bdo=(destination/'brain/BDO.toml').read_bytes()
+                page.locator('#try-bdo-case').click()
+                expect(page.locator('#method')).to_have_value('justified_pb')
+                expect(page.locator('#research-case')).to_contain_text('not a contemporaneous trade or current target')
+                expect(page.locator('#research-case')).to_contain_text('Additional distributions or capital release need support')
+                observations['bdo_case_value']=calculate()
+                expect(page.locator('.fair-value')).to_contain_text('145.48')
+                save('Review BDO case')
+                saved_bdo=next(json.loads(p.read_text(encoding='utf-8')) for p in (destination/'scenarios').glob('*.json') if json.loads(p.read_text(encoding='utf-8'))['name']=='Review BDO case')
+                assert 'common_equity_reconciliation' in saved_bdo['notes']
+                assert 'dividend_policy_check' in saved_bdo['notes']
+                observations['bdo_brain_unchanged']=(destination/'brain/BDO.toml').read_bytes()==original_bdo
+                assert observations['bdo_brain_unchanged']
+                page.screenshot(path=str(evidence/'06-bdo-research.png'),full_page=True)
+                assert not errors,errors
+                assert not external,external
                 browser.close()
         finally:
             http.shutdown()
