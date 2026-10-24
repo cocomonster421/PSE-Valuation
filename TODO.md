@@ -33,6 +33,9 @@ A clean virtual environment and extracted archive can be checked on this laptop.
 
 ## Remaining research
 
+- [x] Record AC's six listed holdings with dated ownership and market values; replay the PHP 587.5699 billion partial subtotal and document Mynt/Globe overlap.
+- [ ] Complete AC's unlisted assets, remaining parent claims, matched common shares and supported holding discount before publishing a fair value.
+
 The checked implementation tasks above do not establish completed investment
 research. [The release audit](docs/FINAL_USER_AUDIT.md) records the remaining
 operating-company cash-flow reconciliation, holding-company valuation and supported

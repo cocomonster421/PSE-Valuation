@@ -1,6 +1,6 @@
 # AC: reconcile ownership and claims before SOTP
 
-Reviewed 23 October 2026; FY2025 evidence. This worksheet is incomplete and produces
+Reviewed 24 October 2026; FY2025 evidence. This worksheet is incomplete and produces
 no fair value. It identifies the source work needed before using the app's SOTP.
 
 ## Figures checked
@@ -29,6 +29,37 @@ still contain claims other than ordinary common equity. Reported BVPS is 748.41;
 do not divide consolidated equity by the latest common share count to recreate it.
 
 ## Which input goes where?
+
+### Dated listed holdings
+
+The same report, PDF page 6 (printed pages 8–9), supplies these market
+capitalizations and effective ownership stakes as of 31 December 2025. Both the
+text and rendered page were checked. Amounts below are PHP billions.
+
+| Holding | Market capitalization | Effective ownership | Attributable market value |
+| --- | ---: | ---: | ---: |
+| BPI | 613.4 | 45.1% | 276.6434 |
+| Ayala Land | 323.1 | 53.0% | 171.2430 |
+| Globe | 228.8 | 30.6% | 70.0128 |
+| ACEN | 108.7 | 58.3% | 63.3721 |
+| iPeople | 6.3 | 36.3% | 2.2869 |
+| IMI | 7.7 | 52.1% | 4.0117 |
+| **Listed subtotal** | | | **587.5699** |
+
+Each row uses market capitalization × effective ownership. Extra decimal places
+show reproducible arithmetic, not greater source precision: the report rounds
+capitalizations to one decimal billion and ownership to one decimal percent.
+These are historical market prices, not independent estimates of intrinsic value.
+The subtotal omits unlisted investments and other assets; missing values are not zero.
+
+PDF pages 4 and 8 explain that Mynt's reported 17.1% effective stake includes
+ownership through Globe and AM 50 Ventures. Adding that full stake alongside
+Globe would overlap exposures. A separate Mynt component requires reconciliation
+of the exposure outside Globe. No Mynt value is included here.
+
+The worksheet stores the six rows in the component helper's input format. Its
+replay runs the production ownership calculation and checks it independently with
+decimal arithmetic. It still returns no per-share fair value.
 
 In the app, choose SOTP and open **Add up owned businesses**. Enter each
 component's value type, value in full pesos, owned percentage, valuation date and
@@ -78,7 +109,7 @@ Do not apply it to compensate for missing components or duplicate claims.
 
 ## Unfinished evidence
 
-- Dated equity values and ownership percentages for listed and unlisted components.
+- Unlisted component values, other assets and overlap reconciliation; the six listed stakes above are documented.
 - Remaining parent claims and their treatment, beyond the headline net debt figure.
 - A common-share denominator matched to the valuation date and capital structure.
 - A documented discount, or a reasoned zero-discount case with sensitivity.

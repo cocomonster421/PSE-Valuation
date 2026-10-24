@@ -1,6 +1,6 @@
 {
   "ticker": "AC",
-  "reviewed_on": "2026-10-23",
+  "reviewed_on": "2026-10-24",
   "financial_period_end": "2025-12-31",
   "status": "Incomplete SOTP source reconciliation; no fair value",
   "sources": {
@@ -11,7 +11,22 @@
       "printed_pages": "146-147",
       "verification": "Text extraction and rendered-page inspection"
     },
-    "financial_summary": "https://edge.pse.com.ph/companyPage/financial_reports_view.do?cmpy_id=57"
+    "financial_summary": "https://edge.pse.com.ph/companyPage/financial_reports_view.do?cmpy_id=57",
+    "listed_holdings": {
+      "url": "https://ayala.com/app/uploads/2026/04/Ayala-Corporation-2025-Integrated-Report.pdf",
+      "pdf_page": 6,
+      "printed_pages": "8-9",
+      "verification": "Text extraction and rendered-page inspection",
+      "as_of": "2025-12-31"
+    },
+    "mynt_ownership_scope": {
+      "url": "https://ayala.com/app/uploads/2026/04/Ayala-Corporation-2025-Integrated-Report.pdf",
+      "pdf_pages": [
+        4,
+        8
+      ],
+      "verification": "Text extraction: effective stake includes Globe and AM 50 Ventures"
+    }
   },
   "reported": {
     "parent_cash_billion": 13.8,
@@ -25,15 +40,73 @@
     "parent_attributable_equity_thousand": 511662496,
     "reported_bvps": 748.41
   },
-  "components": {},
+  "components": {
+    "BPI": {
+      "name": "BPI",
+      "basis": "equity",
+      "value": 613400000000,
+      "ownership": 0.451,
+      "net_claims": 0,
+      "as_of": "2025-12-31",
+      "source_note": "2025 integrated report, PDF page 6, printed pages 8-9: rounded market capitalization and effective ownership; market value, not independently estimated fair value."
+    },
+    "ALI": {
+      "name": "Ayala Land",
+      "basis": "equity",
+      "value": 323100000000,
+      "ownership": 0.53,
+      "net_claims": 0,
+      "as_of": "2025-12-31",
+      "source_note": "2025 integrated report, PDF page 6, printed pages 8-9: rounded market capitalization and effective ownership; market value, not independently estimated fair value."
+    },
+    "GLO": {
+      "name": "Globe",
+      "basis": "equity",
+      "value": 228800000000,
+      "ownership": 0.306,
+      "net_claims": 0,
+      "as_of": "2025-12-31",
+      "source_note": "2025 integrated report, PDF page 6, printed pages 8-9: rounded market capitalization and effective ownership; market value, not independently estimated fair value."
+    },
+    "ACEN": {
+      "name": "ACEN",
+      "basis": "equity",
+      "value": 108700000000,
+      "ownership": 0.583,
+      "net_claims": 0,
+      "as_of": "2025-12-31",
+      "source_note": "2025 integrated report, PDF page 6, printed pages 8-9: rounded market capitalization and effective ownership; market value, not independently estimated fair value."
+    },
+    "IPO": {
+      "name": "iPeople",
+      "basis": "equity",
+      "value": 6300000000,
+      "ownership": 0.363,
+      "net_claims": 0,
+      "as_of": "2025-12-31",
+      "source_note": "2025 integrated report, PDF page 6, printed pages 8-9: rounded market capitalization and effective ownership; market value, not independently estimated fair value."
+    },
+    "IMI": {
+      "name": "IMI",
+      "basis": "equity",
+      "value": 7700000000,
+      "ownership": 0.521,
+      "net_claims": 0,
+      "as_of": "2025-12-31",
+      "source_note": "2025 integrated report, PDF page 6, printed pages 8-9: rounded market capitalization and effective ownership; market value, not independently estimated fair value."
+    }
+  },
   "remaining_parent_claims": null,
   "period_matched_common_shares": null,
   "holding_discount": null,
   "limitations": [
-    "No component equity valuations or matched ownership schedule assembled.",
+    "Six listed holdings use rounded year-end market capitalizations and effective ownership. Unlisted investments and other assets remain unvalued, not zero.",
     "LTV excludes fixed-for-life perpetuals; do not infer common equity NAV by dividing reported net debt by LTV.",
     "Parent net debt is not a complete inventory of preferred, perpetual and other common-equity claims.",
     "Consolidated assets less liabilities includes noncontrolling equity; parent-attributable equity is not automatically common equity.",
-    "Subsidiary equity values already reflect subsidiary financing; do not subtract consolidated net debt again."
-  ]
+    "Subsidiary equity values already reflect subsidiary financing; do not subtract consolidated net debt again.",
+    "The reported 17.1% Mynt effective stake includes ownership through Globe and AM 50 Ventures. Do not add the full stake alongside Globe; reconcile the separate exposure first.",
+    "The subtotal is a historical market-marked portfolio check, not an intrinsic valuation or complete common-share NAV."
+  ],
+  "component_coverage": "partial_listed_only"
 }
