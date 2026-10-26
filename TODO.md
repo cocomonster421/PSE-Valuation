@@ -59,3 +59,12 @@ research. [The release audit](docs/FINAL_USER_AUDIT.md) records the remaining
 operating-company cash-flow reconciliation, holding-company valuation and supported
 forecast/required-return work. [The reliability checklist](docs/RELIABILITY_CHECKLIST.md)
 tracks the source and review safeguards separately.
+
+## P/E earnings-basis improvement — 26 October 2026
+
+- [x] Separate historical, normalized and forecast annual EPS.
+- [x] Add an editable one-step EPS forecast helper and period/source fields.
+- [x] Validate matched multiple bases and helper arithmetic on the backend.
+- [x] Preserve basis metadata in saved analyses and exported inputs.
+- [x] Keep older analyses reproducible with an unspecified-basis warning.
+- [x] Verify 108 tests, extracted standalone startup and offline forward-P/E save/load/export walkthrough.

@@ -136,6 +136,16 @@ def distribution_check(stock, method, inputs):
 def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
     today=today or date.today()
     missing=[]; issues=[]; audit=[]; periods=set(); unsupported=[]; data_issues=[]
+    if method == 'pe':
+        from backend.earnings import check_pe_basis
+        try:
+            _, basis_notes = check_pe_basis(inputs)
+            issues.extend(basis_notes)
+        except ValueError as error:
+            data_issues.append(str(error))
+        if isinstance(inputs.get('pe_basis'), dict) and inputs['pe_basis'].get('kind') in {'forecast', 'normalized'}:
+            unsupported.append('EPS forecast / normalization judgment')
+            issues.append('Forecast or normalized EPS is a scenario assumption, even when it equals a saved historical figure.')
     model=stock.get("models",{}).get(method,{})
     reports=stock.get("reports", {})
     report_status=reports.get("review_status", "unreviewed")
@@ -169,7 +179,9 @@ def review_inputs(stock, policy, method, inputs, today=None, derivations=None):
         baseline_key=("fcff_cash_flow" if method=="dcf_fcff" else "fcfe_cash_flow") if key=="cash_flow" else key
         source=stock.get("fields",{}).get(baseline_key,{})
         derived=next((d for d in reversed(derivations or []) if isinstance(d,dict) and d.get("output_field")==key and d.get("value")==value),None)
-        if derived:
+        if method == "pe" and key == "eps" and isinstance(inputs.get("pe_basis"), dict) and inputs["pe_basis"].get("kind") in {"forecast", "normalized"}:
+            kind="Scenario earnings assumption"; evidence=dict(inputs["pe_basis"])
+        elif derived:
             kind="Calculated from helper inputs"; evidence=derived
             issues.append(f"{key}: review the helper's inputs and source periods")
             if derived.get('component_reconciliation'):

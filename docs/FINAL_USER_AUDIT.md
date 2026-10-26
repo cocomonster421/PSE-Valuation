@@ -85,3 +85,17 @@ states “missing from brain”; overridden values are labelled “Scenario inpu
 
 No separate-machine installation or independent human usability study is claimed.
 Live PSE availability and arbitrary PDF layouts are outside this offline audit.
+
+## P/E follow-up — 26 October 2026
+
+Explicit historical, normalized and forecast earnings bases now accompany P/E
+scenarios. The one-step annual EPS helper, matching multiple basis, period and
+source explanation survive save/load/export. Backend checks reject mismatches and
+stale helper arithmetic. Forecast/normalized EPS remains an assumption even when
+numerically equal to historical EPS. Old inputs retain an unspecified-basis warning.
+
+108 tests passed in the extracted package. Standalone startup and the offline Edge
+walkthrough passed, including an illustrative 10 × (1 + 10%) × 12 = 132 forecast,
+saved helper restoration, export and mismatched-basis rejection. No browser page
+errors or external browser requests occurred. This verifies the workflow, not the
+quality of an entered EPS forecast or comparison multiple.

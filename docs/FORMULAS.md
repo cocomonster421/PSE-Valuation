@@ -34,3 +34,37 @@ Reviewed against primary educational sources on 2026-10-22. This verifies equati
 ## What the defaults do not establish
 
 The original 91-day Philippine T-bill policy is a short-term proxy. A duration- and currency-consistent long-term benchmark may better suit DCF. Online stock refresh does not refresh the benchmark. Beta 1, premium 6%, debt cost 7%, tax 25%, debt weight 30%, forecast growth 3% and terminal growth 2% are illustrative starting assumptions, not measured company values. A 15% holding discount is not an industry fact. No formula certifies these defaults.
+
+## Explicit P/E earnings basis
+
+P/E valuation accepts historical annual/TTM, normalized annual, or forecast annual
+EPS. Match the comparison multiple to that basis and record the earnings period,
+multiple observation date, source and reasoning. Forecast EPS is not reported data.
+The optional one-step helper uses:
+
+`Forecast annual EPS = Base annual EPS × (1 + Expected EPS growth)`
+
+`Estimated value = Selected annual EPS × Comparison P/E`
+
+For an illustrative base EPS of 10, expected EPS growth of 10%, and comparison
+forward P/E of 12, forecast EPS is 11 and value is 132. The market forward ratio
+is current price divided by forecast EPS; using that same ratio for valuation
+returns the current price and supplies no independent target.
+
+The helper requires a positive annual base; it does not extrapolate quarterly
+figures, infer dilution or model loss recovery. Direct forecast EPS entry is
+available for separate forecasts. Normalization adjustments belong in the saved
+explanation. Matching basis labels does not verify forecast comparability.
+
+The result uses the comparison multiple's pricing date. Multiplying next-year EPS
+by a multiple observed today can estimate today's relative value; it does not
+by itself establish a one-year-ahead price target. Forward and trailing multiples
+must not be interchanged. See [CFA Institute's multiples overview](https://www.cfainstitute.org/insights/professional-learning/refresher-readings/2026/market-based-valuation-price-enterprise-value-multiples)
+and [Damodaran's earnings-basis consistency guidance](https://pages.stern.nyu.edu/~adamodar/New_Home_Page/lectures/relpe.htm).
+
+Saved/exported inputs retain `pe_basis`, including helper inputs. The backend
+replays helper arithmetic and rejects a mismatched multiple basis or an unapplied
+helper change. Direct edits to EPS switch to manual entry. EPS sensitivity shocks
+are explicitly stored as direct overrides, leaving the original helper unchanged.
+Older analyses without this metadata remain reproducible with a warning; they are
+not silently reclassified as forward valuations.

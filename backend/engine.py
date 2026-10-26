@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 
 
-ENGINE_VERSION = "1.1.2"
+ENGINE_VERSION = "1.1.3"
 
 
 def readable(value):
@@ -18,10 +18,15 @@ def compare(method, inputs, field, low, high):
     if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in (low, high)) or low >= high:
         raise ValueError("Sensitivity inputs must be finite and lower must be below higher")
     base = calculate(method, inputs)
+    def stressed(value):
+        changed = {**inputs, field: value}
+        if method == 'pe' and field == 'eps' and inputs.get('pe_basis'):
+            changed['pe_basis'] = {**inputs['pe_basis'], 'calculation': 'manual'}
+        return calculate(method, changed)
     cases = [
-        {"label": "Lower input", "input": low, "result": calculate(method, {**inputs, field: low})},
+        {"label": "Lower input", "input": low, "result": stressed(low)},
         {"label": "Base case", "input": inputs[field], "result": base},
-        {"label": "Higher input", "input": high, "result": calculate(method, {**inputs, field: high})}]
+        {"label": "Higher input", "input": high, "result": stressed(high)}]
     values=[case["result"]["fair_value"] for case in cases]
     price=inputs.get("price")
     return {"field": field, "cases": cases, "summary": {
@@ -83,10 +88,17 @@ def calculate(method: str, inputs: dict) -> dict:
         steps.append({"label": f"Annual dividend per share ({readable(dividend)}) × (1 + Long-run dividend growth ({readable(terminal)})) ÷ (Required yearly return ({readable(rate)}) − Long-run dividend growth ({readable(terminal)}))", "value": value})
         warnings.append("Use recurring, sustainable dividends; exclude special distributions.")
     elif method in {"pe", "pb", "affo"}:
+        if method == 'pe':
+            from backend.earnings import check_pe_basis
+            basis_steps, basis_warnings = check_pe_basis(inputs)
+            steps.extend(basis_steps)
+            warnings.extend(basis_warnings)
         metric = {"pe": "eps", "pb": "bvps", "affo": "affo_per_share"}[method]
         value = number(metric, positive=True) * number("multiple", positive=True)
         metric_label={"eps":"Earnings per share (EPS)","bvps":"Book value per share","affo_per_share":"Annual AFFO per share"}[metric]
         ratio_label={"pe":"Comparison P/E","pb":"Comparison P/B","affo":"Comparison price / cash earnings"}[method]
+        if method == 'pe' and inputs.get('pe_basis'):
+            metric_label = inputs['pe_basis']['kind'].capitalize() + ' annual EPS'
         steps.append({"label": f"{metric_label} ({readable(inputs[metric])}) × {ratio_label} ({readable(inputs['multiple'])})", "value": value})
     elif method == "justified_pb":
         roe = number("roe")
@@ -175,6 +187,8 @@ def calculate(method: str, inputs: dict) -> dict:
         "sotp":"(Value of owned assets and businesses − Remaining parent-company debt and claims) × (1 − Discount to asset-based value) ÷ Number of common shares",
     }
     formula=formulas.get(method)
+    if method == "pe" and inputs.get("pe_basis"):
+        formula=inputs["pe_basis"]["kind"].capitalize()+" annual EPS × Comparison P/E"
     if method in {"nav","rnav"}: formula="(Reviewed gross asset value − Liabilities and other claims against those assets) × (1 − Discount to asset-based value) ÷ Number of common shares"
     ratios={}
     if price and inputs.get("eps",0)>0:

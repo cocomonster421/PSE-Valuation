@@ -68,6 +68,14 @@ The public release includes 61 blank real-company templates and a synthetic DEMO
 The compact examples retain their sources and limitations; downloaded reports and
 private working research are excluded.
 
+### P/E earnings choices
+
+Choose historical, normalized or forecast annual EPS and match the comparison
+P/E basis. For a simple forecast, **Estimate next annual EPS** applies editable
+EPS growth to a dated annual base. You can also enter forecast EPS directly.
+Record the forecast period and comparison multiple's source and reasoning;
+saved analyses and exports preserve them. Current market P/E is shown separately.
+
 ## Release scope
 
 This release is an offline manual valuation tool. It checks calculations and

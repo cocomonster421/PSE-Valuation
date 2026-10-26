@@ -178,6 +178,7 @@ function renderFields(overrides) {
     field.innerHTML = `<label for="input-${escapeHtml(key)}">${escapeHtml(definition.label)} <small>${definition.unit === "rate" ? "%" : escapeHtml(definition.unit)}</small></label><input id="input-${escapeHtml(key)}" data-key="${escapeHtml(key)}" type="number" step="any" ${key === "price" ? "" : "required"} value="${escapeHtml(value)}"><details class="field-help"><summary>Details</summary><p class="help">${escapeHtml(definition.help)}</p>${source?.note ? `<p class="help">${escapeHtml(source.note)}</p>` : ""}</details><small class="provenance">${escapeHtml(sourceText)}${source?.source_url ? ` · ${safeLink(source.source_url)}` : ""}</small>`;
     field.querySelector("input").addEventListener("input", () => {
       field.querySelector(".provenance").textContent = "Edited input · document your basis";
+      if(key==="eps" && $("pe-calculation")) $("pe-calculation").value="manual";
       derivations=derivations.filter(d=>d.output_field!==key);
       invalidate();
       showCurrentRatios();
@@ -189,6 +190,7 @@ function renderFields(overrides) {
     }
     $("fields").append(field);
   }
+  renderPeBasis(overrides?.pe_basis);
   invalidate();
   showCurrentRatios();
   renderCashHelper();
@@ -224,7 +226,8 @@ function showCurrentRatios() {
   $("current-ratios").hidden=!key;
   if(!key) return;
   const price=Number($("input-price")?.value), amount=Number($("input-"+key)?.value);
-  const name=method==="pe"?"P/E":"P/B", label=policyRecord.data.fields[key].label;
+  const kind=$("pe-kind")?.value;
+  const name=method==="pe"?(kind==="forecast"?"forward P/E":"P/E"):"P/B", label=method==="pe" && kind ? `${kind} annual EPS` : policyRecord.data.fields[key].label;
   $("current-ratios").textContent=price>0 && amount>0 ? `Current ${name} = Share price (${numeric(price)}) ÷ ${label} (${numeric(amount)}) = ${numeric(price/amount)}×. Fair value uses the separate Comparison ${name} below; using this current ratio would just return the current price.` : `Enter a positive Share price and ${label} to calculate current ${name}.`;
 }
 function collectInputs() {
@@ -234,10 +237,12 @@ function collectInputs() {
     const value = Number(input.value);
     inputs[input.dataset.key] = policyRecord.data.fields[input.dataset.key].unit === "rate" ? value/100 : value;
   }
+  if($("method").value==="pe" && $("pe-kind")?.value) inputs.pe_basis=readPeBasis();
   return inputs;
 }
 function renderResult(value) {
-  $("result").innerHTML = `<div class="help">${escapeHtml(policyRecord.data.methods[value.method].name)} · per share</div><div class="fair-value">${peso(value.fair_value)}</div>${value.gap == null ? '<p class="help">Add a reference price to compare.</p>' : `<span class="gap">${value.gap >= 0 ? "+" : ""}${(value.gap * 100).toFixed(1)}% vs reference price</span>`}${value.warnings.map(w=>`<p class="warning">${escapeHtml(w)}</p>`).join("")}<details open><summary>Calculation</summary>${value.steps.map(s=>`<div class="calculation"><span>${escapeHtml(readableFormula(s.label))}</span><strong>${numeric(s.present_value ?? s.value)}</strong></div>`).join("")}</details>`;
+  const methodName=value.method==="pe" ? (value.inputs.pe_basis?.kind==="forecast"?"Forward P/E valuation":"Earnings valuation (P/E)") : policyRecord.data.methods[value.method].name;
+  $("result").innerHTML = `<div class="help">${escapeHtml(methodName)} · per share</div><div class="fair-value">${peso(value.fair_value)}</div>${value.gap == null ? '<p class="help">Add a reference price to compare.</p>' : `<span class="gap">${value.gap >= 0 ? "+" : ""}${(value.gap * 100).toFixed(1)}% vs reference price</span>`}${value.warnings.map(w=>`<p class="warning">${escapeHtml(w)}</p>`).join("")}<details open><summary>Calculation</summary>${value.steps.map(s=>`<div class="calculation"><span>${escapeHtml(readableFormula(s.label))}</span><strong>${numeric(s.present_value ?? s.value)}</strong></div>`).join("")}</details>`;
   const qualification=document.createElement("p"); qualification.className="warning";
   qualification.textContent=inputReview ? `${inputReview.assumption_status} · Data: ${inputReview.data_status}. Calculation completed; this is not a verified price target.` : "Review unavailable: treat this result as an illustrative scenario.";
   $("result").prepend(qualification);
@@ -854,4 +859,48 @@ function renderComponentHelper(saved){
       $('component-result').textContent='Component baseline and evidence saved. Review required. Parent claims, shares and discount were not saved.';
     }catch(error){if(panel.isConnected){$('component-result').textContent=error.message;save.disabled=!latest;}}
   };
+}
+
+function readPeBasis(){
+  return {kind:$('pe-kind').value, multiple_basis:$('pe-multiple-basis').value,
+    period:$('pe-period').value, note:$('pe-note').value, calculation:$('pe-calculation').value,
+    base_eps:$('pe-base').value===''?null:Number($('pe-base').value),
+    growth:$('pe-growth').value===''?null:Number($('pe-growth').value)/100,
+    base_period:$('pe-base-period').value};
+}
+function renderPeBasis(saved){
+  $('pe-basis-panel')?.remove();
+  if($('method').value!=='pe')return;
+  const panel=document.createElement('div');panel.id='pe-basis-panel';
+  const choices='<option value="">Choose basis</option><option value="historical">Historical annual / trailing 12 months</option><option value="normalized">Normalized sustainable annual earnings</option><option value="forecast">Forecast annual earnings</option>';
+  panel.innerHTML=`<h3>Earnings basis</h3><div class="fields"><div><label for="pe-kind">EPS basis</label><select id="pe-kind">${choices}</select></div><div><label for="pe-multiple-basis">Comparison P/E earnings basis</label><select id="pe-multiple-basis">${choices}</select></div><div><label for="pe-period">EPS period / normalization basis</label><input id="pe-period" placeholder="For example: FY2027 forecast or FY2026–2030 normalized"></div><div><label for="pe-note">Comparison P/E source and reasoning</label><input id="pe-note" placeholder="Source, observation date, earnings horizon and why comparable"></div></div><p class="help">Use a comparison multiple on the same earnings basis. Current price ÷ forecast EPS is a market forward P/E, not an independent fair-value multiple. Missing basis remains unverified; forecasts are assumptions, not imported historical facts.</p><details id="pe-forecast-helper"><summary>Estimate next annual EPS</summary><p class="help">One annual step only: Base annual EPS × (1 + Expected EPS growth). Use an annual or trailing-year base, not a quarter or YTD figure. Growth includes share-count effects; enter a separately modeled EPS directly for dilution, recovery or multi-year forecasts.</p><div class="fields"><div><label for="pe-base">Base annual EPS</label><input id="pe-base" type="number" step="any"></div><div><label for="pe-base-period">Base annual EPS period</label><input id="pe-base-period" placeholder="For example: FY2026"></div><div><label for="pe-growth">Expected EPS growth (%)</label><input id="pe-growth" type="number" step="any"></div></div><button id="pe-apply" type="button" class="quiet">Use forecast EPS</button><p id="pe-forecast-result" class="help"></p></details><input id="pe-calculation" type="hidden" value="manual">`;
+  $('fields').before(panel);
+  const source=stockRecord.data.fields.eps || {};
+  const record=saved || (["annual","ttm"].includes(source.period_type)?{base_eps:source.value,base_period:source.period_end}:{});
+  for(const [id,key] of Object.entries({'kind':'kind','multiple-basis':'multiple_basis','period':'period','note':'note','base':'base_eps','base-period':'base_period','calculation':'calculation'})){
+    if(record[key]!=null)$('pe-'+id).value=record[key];
+  }
+  $('pe-growth').value=record.growth==null?'':record.growth*100;
+  const sync=()=>{
+    const kind=$('pe-kind').value;
+    $('pe-forecast-helper').hidden=kind!=='forecast';
+    $('input-eps').previousElementSibling.firstChild.textContent=(kind?kind[0].toUpperCase()+kind.slice(1)+' annual EPS':'Earnings per share (EPS)')+' ';
+    showCurrentRatios();
+  };
+  panel.addEventListener('input',()=>{invalidate();sync();});
+  $('pe-kind').addEventListener('change',()=>{
+    $('pe-calculation').value='manual';
+    // A change of basis must not silently relabel historical EPS as a forecast.
+    $('input-eps').value='';invalidate();sync();
+  });
+  $('pe-apply').onclick=()=>{
+    const b=readPeBasis();
+    if(b.base_eps==null || b.growth==null || b.base_eps<=0 || b.growth<=-1 || !b.base_period.trim())return status('Enter positive base annual EPS, its period, and EPS growth above −100%.');
+    const eps=b.base_eps*(1+b.growth);
+    if(!Number.isFinite(eps))return status('Forecast EPS must be finite.');
+    $('input-eps').value=eps;$('pe-calculation').value='growth';
+    $('pe-forecast-result').textContent=`Forecast annual EPS = ${numeric(b.base_eps)} × (1 + ${numeric(b.growth*100)}%) = ${numeric(eps)}. Review the forecast period and comparison forward P/E.`;
+    invalidate();sync();
+  };
+  sync();
 }
