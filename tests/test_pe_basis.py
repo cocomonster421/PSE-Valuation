@@ -50,3 +50,13 @@ class PeBasisTests(unittest.TestCase):
         eps=next(row for row in review['fields'] if row['field']=='eps')
         self.assertEqual(eps['kind'],'Scenario earnings assumption')
         self.assertEqual(review['assumption_status'],'Illustrative scenario')
+
+    def test_growth_helper_requires_one_annual_step(self):
+        for base,end in [('FY2026','FY2030'),('FY2026','FY2026'),('FY2026','FY2025'),
+                         ('FY2026','2027-12-31'),('2026-06-30','2027-12-31'),('Q12026','Q12027')]:
+            with self.subTest(base=base,end=end):
+                inputs=self.inputs();inputs['pe_basis'].update(base_period=base,period=end)
+                with self.assertRaisesRegex(ValueError,'exactly one year'):calculate('pe',inputs)
+        for base,end in [('FY2026','FY2027'),('2026-06-30','2027-06-30'),('2024-02-29','2025-02-28')]:
+            inputs=self.inputs();inputs['pe_basis'].update(base_period=base,period=end)
+            self.assertEqual(calculate('pe',inputs)['fair_value'],132)

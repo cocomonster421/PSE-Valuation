@@ -1,5 +1,26 @@
 """Validate explicit P/E earnings bases without inventing earnings forecasts."""
 import math
+import re
+import calendar
+from datetime import date
+
+
+def check_forecast_periods(base, forecast):
+    """The helper advances one annual period; FY labels and exact ends cannot mix."""
+    fy = re.fullmatch(r'FY(\d{4})', base.strip(), re.IGNORECASE)
+    target = re.fullmatch(r'FY(\d{4})', forecast.strip(), re.IGNORECASE)
+    if fy and target:
+        valid = int(target[1]) == int(fy[1]) + 1
+    else:
+        try:
+            start, end = date.fromisoformat(base.strip()), date.fromisoformat(forecast.strip())
+            next_year = start.year + 1
+            expected = date(next_year, start.month, min(start.day, calendar.monthrange(next_year, start.month)[1]))
+            valid = end == expected
+        except (ValueError, OverflowError):
+            valid = False
+    if not valid:
+        raise ValueError('The growth helper covers exactly one year. Use consecutive FY labels (FY2026 to FY2027) or annual end dates (2026-06-30 to 2027-06-30). For other horizons, enter separately modeled EPS directly.')
 
 
 def check_pe_basis(inputs):
@@ -29,6 +50,7 @@ def check_pe_basis(inputs):
             raise ValueError('Growth helper requires positive base annual EPS and growth above -100%; enter a separately modeled recovery EPS directly')
         if not isinstance(basis.get('base_period'), str) or not basis['base_period'].strip():
             raise ValueError('Enter the base annual EPS period')
+        check_forecast_periods(basis['base_period'], basis['period'])
         forecast = base * (1 + growth)
         eps = inputs.get('eps')
         if not math.isfinite(forecast) or isinstance(eps, bool) or not isinstance(eps, (int, float)) or not math.isclose(forecast, eps, rel_tol=1e-10, abs_tol=1e-8):

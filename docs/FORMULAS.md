@@ -66,5 +66,12 @@ Saved/exported inputs retain `pe_basis`, including helper inputs. The backend
 replays helper arithmetic and rejects a mismatched multiple basis or an unapplied
 helper change. Direct edits to EPS switch to manual entry. EPS sensitivity shocks
 are explicitly stored as direct overrides, leaving the original helper unchanged.
-Older analyses without this metadata remain reproducible with a warning; they are
-not silently reclassified as forward valuations.
+Older stored results remain readable, and the pure engine can replay their arithmetic
+with a warning. New API calculations, comparisons and saves require an explicit
+basis. Loading an older analysis therefore requires classifying its inputs before
+recalculating; no forecast classification is inferred.
+
+For the one-step helper, use consecutive FY labels (FY2026 to FY2027) or exact
+annual end dates (2026-06-30 to 2027-06-30). Mixed formats, reversed periods and
+multi-year gaps are rejected. A leap-day base advances to February 28 when needed.
+Other horizons require separately modeled EPS entered directly.

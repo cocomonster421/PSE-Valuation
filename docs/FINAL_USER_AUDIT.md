@@ -99,3 +99,16 @@ walkthrough passed, including an illustrative 10 × (1 + 10%) × 12 = 132 foreca
 saved helper restoration, export and mismatched-basis rejection. No browser page
 errors or external browser requests occurred. This verifies the workflow, not the
 quality of an entered EPS forecast or comparison multiple.
+
+## Follow-up fixes — 26 October 2026
+
+New P/E calculations, comparisons and saves now require earnings-basis metadata.
+Older stored results remain available; users must classify their inputs before
+recalculating in the app. The one-step growth helper now validates consecutive FY
+labels or annual end dates rather than accepting any nonempty period text.
+
+110 regression tests and the extracted offline walkthrough passed. Browser checks
+reproduced rejection of an unspecified basis and a FY2026-to-FY2030 one-step
+forecast. These checks enforce declared periods, not the accuracy of the underlying
+source or forecast. TEL's bundled PHP 844.73 remains a dividend scenario, not the
+same model as a user's earnings-multiple valuation.

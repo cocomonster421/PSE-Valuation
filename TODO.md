@@ -68,3 +68,10 @@ tracks the source and review safeguards separately.
 - [x] Preserve basis metadata in saved analyses and exported inputs.
 - [x] Keep older analyses reproducible with an unspecified-basis warning.
 - [x] Verify 108 tests, extracted standalone startup and offline forward-P/E save/load/export walkthrough.
+
+## P/E audit fixes — 26 October 2026
+
+- [x] Require explicit EPS and comparison-multiple bases for new API calculations, comparisons and saves.
+- [x] Validate the growth helper's one-year horizon using consecutive FY labels or annual end dates.
+- [x] Preserve stored legacy results without silently classifying their earnings.
+- [x] Verify 110 regression tests and the extracted offline workflow, including both rejected audit cases.

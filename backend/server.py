@@ -334,6 +334,8 @@ class Handler(BaseHTTPRequestHandler):
             if path in {"/api/calculate", "/api/scenarios", "/api/compare"}:
                 if payload.get("confirmed") is not True:
                     raise ValueError("Confirm the selected inputs and assumptions first")
+                if payload.get('method') == 'pe' and isinstance(payload.get('inputs'), dict) and not payload['inputs'].get('pe_basis'):
+                    raise ValueError('Choose an EPS basis and matching comparison P/E basis before calculating or saving. Older saved results remain available; classify their inputs before recalculating.')
                 result = calculate(payload["method"], payload["inputs"])
                 if path == "/api/compare":
                     return self.send(200, compare(payload["method"], payload["inputs"], payload["field"], payload["low"], payload["high"]))

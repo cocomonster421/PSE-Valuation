@@ -326,8 +326,15 @@ class LocalAPITests(unittest.TestCase):
         apply["token"] = preview["token"]
         self.assertEqual(self.request("/api/update-apply", apply)[0], 400)
 
+    def test_new_pe_requests_require_basis(self):
+        body=dict(ticker='TEL',method='pe',inputs=dict(eps=10,multiple=12),confirmed=True,field='multiple',low=10,high=14)
+        for endpoint in ('/api/calculate','/api/scenarios','/api/compare'):
+            code,result=self.request(endpoint,body)
+            self.assertEqual(code,400)
+            self.assertIn('Choose an EPS basis',result['error'])
+
     def test_save_snapshot_and_replay(self):
-        body = {"ticker": "TEL", "method": "pe", "inputs": {"eps": 10, "multiple": 12}, "confirmed": True, "name": "Test thesis"}
+        body = {"ticker": "TEL", "method": "pe", "inputs": {"eps": 10, "multiple": 12, "pe_basis": {"kind":"historical", "multiple_basis":"historical", "period":"FY2025", "note":"Synthetic comparison multiple", "calculation":"manual"}}, "confirmed": True, "name": "Test thesis"}
         code, saved = self.request("/api/scenarios", body)
         self.assertEqual(code, 201)
         self.assertEqual(saved["stock_snapshot"]["name"], "PLDT")
@@ -357,7 +364,7 @@ class LocalAPITests(unittest.TestCase):
         self.assertEqual(self.request("/api/policy", current)[0], 400)
 
     def test_save_rejects_changed_source_revision(self):
-        body = {"ticker": "TEL", "method": "pe", "inputs": {"eps": 10, "multiple": 12},
+        body = {"ticker": "TEL", "method": "pe", "inputs": {"eps": 10, "multiple": 12, "pe_basis": {"kind":"historical", "multiple_basis":"historical", "period":"FY2025", "note":"Synthetic comparison multiple", "calculation":"manual"}},
                 "confirmed": True, "stock_revision": "obsolete"}
         self.assertEqual(self.request("/api/scenarios", body)[0], 409)
 

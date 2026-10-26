@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 
 
-ENGINE_VERSION = "1.1.3"
+ENGINE_VERSION = "1.1.4"
 
 
 def readable(value):
